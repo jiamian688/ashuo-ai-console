@@ -26,7 +26,7 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
-        <h1>Yule AgentCenter<span className="badge">V2.0</span></h1>
+        <h1>ashuo-ai-console<span className="badge">V2.0</span></h1>
         <p>内容运营私人工作台 · 请输入访问口令</p>
         <input
           className="text-input"

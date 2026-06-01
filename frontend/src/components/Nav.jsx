@@ -10,7 +10,7 @@ export default function Nav({ crumb, theme, onToggleTheme }) {
   return (
     <header className="nav">
       <Link to="/" className="brand">
-        Yule AgentCenter<span className="badge">V2.0</span>
+        ashuo-ai-console<span className="badge">V2.0</span>
       </Link>
       {crumb && (
         <div className="crumb">
