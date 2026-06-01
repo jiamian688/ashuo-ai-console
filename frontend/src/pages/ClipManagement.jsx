@@ -2,16 +2,26 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, fileUrl } from '../api/client.js';
 
+const WM_POSITIONS = [
+  { v: 'br', label: '右下角' },
+  { v: 'bl', label: '左下角' },
+  { v: 'tr', label: '右上角' },
+  { v: 'tl', label: '左上角' },
+];
+
 export default function ClipManagement() {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
+  const [watermark, setWatermark] = useState(null);
+  const [wmPosition, setWmPosition] = useState('br');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
-  const [thumbAt, setThumbAt] = useState('0');
+  const [thumbAt, setThumbAt] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
   const inputRef = useRef(null);
+  const wmRef = useRef(null);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -22,9 +32,13 @@ export default function ClipManagement() {
     try {
       const form = new FormData();
       form.append('file', file);
+      if (watermark) {
+        form.append('watermark', watermark);
+        form.append('wmPosition', wmPosition);
+      }
       if (start.trim()) form.append('start', start.trim());
       if (end.trim()) form.append('end', end.trim());
-      form.append('thumbAt', thumbAt.trim() || '0');
+      if (thumbAt.trim()) form.append('thumbAt', thumbAt.trim());
       const r = await api.processClip(form);
       setResult(r);
     } catch (err) {
@@ -39,7 +53,7 @@ export default function ClipManagement() {
       <button className="back-btn" onClick={() => navigate('/')}>← 返回工作台</button>
 
       <div className="card" style={{ marginTop: 24 }}>
-        <div className="card-head">剪辑管理 <span className="muted">· 视频裁剪 + 封面图生成(ffmpeg)</span></div>
+        <div className="card-head">剪辑管理 <span className="muted">· 裁剪 + 水印 + 智能封面(750×422 高清)</span></div>
         <div className="card-body">
           <form onSubmit={submit}>
             <div className="field-label">选择视频文件</div>
@@ -60,8 +74,31 @@ export default function ClipManagement() {
                 <input className="text-input" value={end} onChange={(e) => setEnd(e.target.value)} placeholder="如 0:30" />
               </div>
               <div>
-                <div className="field-label">封面截取时间点</div>
-                <input className="text-input" value={thumbAt} onChange={(e) => setThumbAt(e.target.value)} placeholder="如 0:03" />
+                <div className="field-label">封面时间点(留空=自动选最佳帧)</div>
+                <input className="text-input" value={thumbAt} onChange={(e) => setThumbAt(e.target.value)} placeholder="留空智能选帧,或填 0:03" />
+              </div>
+            </div>
+
+            <div className="field-label" style={{ marginTop: 18 }}>水印图片(可选 · 建议透明 PNG)</div>
+            <div className="clip-grid">
+              <div style={{ gridColumn: 'span 2' }}>
+                <div className="dropzone" onClick={() => wmRef.current?.click()} style={{ padding: 18 }}>
+                  <div className="big" style={{ fontSize: 15 }}>{watermark ? watermark.name : '点击选择水印图(不选则不加水印)'}</div>
+                  <div className="small">{watermark ? `${(watermark.size / 1024).toFixed(0)} KB` : 'PNG / JPG,自动缩放叠加'}</div>
+                  <input ref={wmRef} type="file" accept="image/*" hidden
+                    onChange={(e) => setWatermark(e.target.files?.[0] || null)} />
+                </div>
+              </div>
+              <div>
+                <div className="field-label">水印位置</div>
+                <select className="text-input" value={wmPosition} onChange={(e) => setWmPosition(e.target.value)} disabled={!watermark}>
+                  {WM_POSITIONS.map((p) => <option key={p.v} value={p.v}>{p.label}</option>)}
+                </select>
+                {watermark && (
+                  <div className="small" style={{ marginTop: 6 }}>
+                    <a className="link" onClick={() => setWatermark(null)}>移除水印</a>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -79,20 +116,20 @@ export default function ClipManagement() {
           <div className="card-body clip-result">
             {result.cover && (
               <div>
-                <div className="field-label">封面图</div>
+                <div className="field-label">封面图 · 750×422 高清</div>
                 <img className="cover-preview" src={fileUrl(result.cover)} alt="cover" />
                 <div><a className="link" href={fileUrl(result.cover)} download>下载封面 ↓</a></div>
               </div>
             )}
             {result.video && (
               <div style={{ flex: 1 }}>
-                <div className="field-label">裁剪后的视频</div>
+                <div className="field-label">处理后的视频{watermark ? '(含水印)' : ''}</div>
                 <video className="video-preview" src={fileUrl(result.video)} controls />
                 <div><a className="link" href={fileUrl(result.video)} download>下载视频 ↓</a></div>
               </div>
             )}
             {!result.video && (
-              <div className="empty">未填写起止时间,仅生成了封面图。</div>
+              <div className="empty">未裁剪也未加水印,仅生成了封面图。</div>
             )}
           </div>
         </div>

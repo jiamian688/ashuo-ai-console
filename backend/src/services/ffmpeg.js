@@ -3,6 +3,18 @@ import ffmpegStatic from 'ffmpeg-static';
 
 const FFMPEG = ffmpegStatic || 'ffmpeg';
 
+// 封面统一尺寸
+export const COVER_W = 750;
+export const COVER_H = 422;
+
+// 水印位置 → overlay 坐标(留 20px 边距)
+const WM_POS = {
+  br: 'W-w-20:H-h-20', // 右下(默认)
+  bl: '20:H-h-20',     // 左下
+  tr: 'W-w-20:20',     // 右上
+  tl: '20:20',         // 左上
+};
+
 function run(args) {
   return new Promise((resolve, reject) => {
     const proc = spawn(FFMPEG, args);
@@ -16,16 +28,38 @@ function run(args) {
   });
 }
 
-// 裁剪:start/end 接受秒数或 "mm:ss" / "hh:mm:ss"
-export async function trimVideo({ input, output, start, end }) {
+// 裁剪视频,可选叠加图片水印
+// start/end 接受秒数或 "mm:ss";watermark 为图片路径;wmPosition ∈ br/bl/tr/tl
+export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br' }) {
   const args = ['-y'];
   if (start) args.push('-ss', String(start));
   if (end) args.push('-to', String(end));
-  args.push('-i', input, '-c:v', 'libx264', '-preset', 'veryfast', '-c:a', 'aac', '-movflags', '+faststart', output);
+  args.push('-i', input);
+
+  if (watermark) {
+    args.push('-i', watermark);
+    const pos = WM_POS[wmPosition] || WM_POS.br;
+    // 水印缩放到 160px 宽、65% 不透明,叠加到指定角
+    args.push('-filter_complex',
+      `[1]format=rgba,colorchannelmixer=aa=0.65,scale=160:-1[wm];[0][wm]overlay=${pos}`);
+  }
+
+  args.push('-c:v', 'libx264', '-preset', 'veryfast', '-c:a', 'aac', '-movflags', '+faststart', output);
   await run(args);
 }
 
-// 在指定时间点截一帧作为封面
-export async function extractThumbnail({ input, output, at = 0 }) {
-  await run(['-y', '-ss', String(at), '-i', input, '-frames:v', '1', '-q:v', '2', output]);
+// 生成封面:固定 750×422、高清化(lanczos 缩放 + 锐化)
+// at 为空 → 自动挑选最具代表性的一帧;at 有值 → 取该时间点
+export async function extractThumbnail({ input, output, at }) {
+  const enhance =
+    `scale=${COVER_W}:${COVER_H}:force_original_aspect_ratio=increase:flags=lanczos,` +
+    `crop=${COVER_W}:${COVER_H},unsharp=5:5:0.8:3:3:0.4`;
+
+  const hasAt = at != null && String(at).trim() !== '';
+  if (hasAt) {
+    await run(['-y', '-ss', String(at), '-i', input, '-vf', enhance, '-frames:v', '1', '-q:v', '2', output]);
+  } else {
+    // thumbnail 滤镜在前 150 帧里挑最有代表性的一帧
+    await run(['-y', '-i', input, '-vf', `thumbnail=n=150,${enhance}`, '-frames:v', '1', '-q:v', '2', output]);
+  }
 }
