@@ -48,18 +48,22 @@ export async function processVideo({ input, output, start, end, watermark, wmPos
   await run(args);
 }
 
-// 生成封面:固定 750×422、高清化(lanczos 缩放 + 锐化)
-// at 为空 → 自动挑选最具代表性的一帧;at 有值 → 取该时间点
-export async function extractThumbnail({ input, output, at }) {
-  const enhance =
-    `scale=${COVER_W}:${COVER_H}:force_original_aspect_ratio=increase:flags=lanczos,` +
-    `crop=${COVER_W}:${COVER_H},unsharp=5:5:0.8:3:3:0.4`;
+// 把一帧加工成 750×422 高清封面:
+// 画面完整缩放进框(不裁切,避免"半个头"),背后用模糊放大的同图填满,最后锐化
+const FIT =
+  `split[a][b];` +
+  `[a]scale=${COVER_W}:${COVER_H}:force_original_aspect_ratio=increase:flags=lanczos,` +
+  `crop=${COVER_W}:${COVER_H},boxblur=20:3[bg];` +
+  `[b]scale=${COVER_W}:${COVER_H}:force_original_aspect_ratio=decrease:flags=lanczos[fg];` +
+  `[bg][fg]overlay=(W-w)/2:(H-h)/2,unsharp=5:5:1.0:5:5:0.0`;
 
+// 生成封面:at 为空 → 自动挑选最具代表性的一帧;at 有值 → 取该时间点
+export async function extractThumbnail({ input, output, at }) {
   const hasAt = at != null && String(at).trim() !== '';
   if (hasAt) {
-    await run(['-y', '-ss', String(at), '-i', input, '-vf', enhance, '-frames:v', '1', '-q:v', '2', output]);
+    await run(['-y', '-ss', String(at), '-i', input, '-vf', FIT, '-frames:v', '1', '-q:v', '2', output]);
   } else {
-    // thumbnail 滤镜在前 150 帧里挑最有代表性的一帧
-    await run(['-y', '-i', input, '-vf', `thumbnail=n=150,${enhance}`, '-frames:v', '1', '-q:v', '2', output]);
+    // thumbnail 滤镜在前 200 帧里挑最有代表性的一帧
+    await run(['-y', '-i', input, '-vf', `thumbnail=n=200,${FIT}`, '-frames:v', '1', '-q:v', '2', output]);
   }
 }
