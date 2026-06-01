@@ -1,0 +1,31 @@
+# Render 蓝图:部署后端。前端走 Vercel,不在此文件。
+# 在 Render 新建 → Blueprint → 连接本仓库即可自动读取。
+services:
+  - type: web
+    name: yule-agentcenter-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      # 这些在 Render 控制台手动填(sync:false 表示不写进仓库）
+      - key: APP_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true        # Render 自动生成随机值
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: X_API_KEY
+        sync: false
+      - key: X_API_SECRET
+        sync: false
+      - key: X_ACCESS_TOKEN
+        sync: false
+      - key: X_ACCESS_SECRET
+        sync: false
