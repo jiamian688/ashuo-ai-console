@@ -264,6 +264,41 @@ button { font-family: inherit; cursor: pointer; }
 .dropzone .big { font-size: 16px; font-weight: 700; }
 .dropzone .small { color: var(--text-faint); font-size: 13px; margin-top: 8px; }
 
+/* ---------- upload queue (待上传队列) ---------- */
+.queue-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 14px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.queue-bar .summary { font-size: 14px; color: var(--text-soft); }
+.queue-actions { display: flex; align-items: center; gap: 10px; }
+.queue-actions .ghost-btn { margin-left: 0; }
+.queue-actions .btn-primary { padding: 9px 22px; }
+.queue-actions .btn-primary:disabled, .queue-actions .ghost-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.queue-list { margin-top: 6px; }
+.queue-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.queue-row:last-child { border-bottom: none; }
+.queue-row .qinfo { min-width: 0; }
+.queue-row .fname { font-size: 14px; font-weight: 700; word-break: break-all; }
+.queue-row .fsize { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+.queue-row .qstatus { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.queue-row .qstatus .muted { color: var(--text-faint); font-size: 13px; }
+.queue-row .qdel { background: none; border: none; color: var(--text-faint); font-size: 18px; line-height: 1; cursor: pointer; }
+.queue-row .qdel:hover { color: #e11d48; }
+
 /* ---------- table ---------- */
 table { width: 100%; border-collapse: collapse; }
 thead th { text-align: left; font-size: 13px; color: var(--text-soft); font-weight: 600; padding: 14px 26px; border-bottom: 1px solid var(--border); }

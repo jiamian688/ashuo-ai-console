@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
+import UploadQueue from '../components/UploadQueue.jsx';
 
 function fmtDate(s) {
   if (!s) return '—';
@@ -17,12 +18,8 @@ const STATUS_LABEL = { posted: 'posted', queued: 'queued', processing: 'processi
 export default function Community() {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
-  const [drag, setDrag] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [caption, setCaption] = useState('');
   const [tg, setTg] = useState({ configured: false });
   const [testing, setTesting] = useState(false);
-  const inputRef = useRef(null);
 
   const load = () => api.listTasks().then(setTasks).catch(() => {});
   useEffect(() => {
@@ -44,23 +41,6 @@ export default function Community() {
     }
   };
 
-  const handleFiles = async (fileList) => {
-    const files = Array.from(fileList);
-    if (files.length === 0) return;
-    const form = new FormData();
-    files.forEach((f) => form.append('files', f));
-    if (caption.trim()) form.append('caption', caption.trim());
-    setUploading(true);
-    try {
-      await api.uploadTasks(form);
-      load();
-    } catch (err) {
-      alert('上传失败: ' + err.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   return (
     <div className="page">
       <button className="back-btn" onClick={() => navigate('/')}>← 返回工作台</button>
@@ -78,33 +58,7 @@ export default function Community() {
       <div className="card" style={{ marginTop: 20 }}>
         <div className="card-head">上传新任务</div>
         <div className="card-body">
-          <div className="field-label">配文(可选,作为 Telegram caption)</div>
-          <textarea
-            className="text-input"
-            style={{ width: '100%', minHeight: 64, resize: 'vertical', marginBottom: 20 }}
-            placeholder="给这条视频写点说明文字…"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-          />
-          <div className="field-label">选择视频文件</div>
-          <div
-            className={`dropzone ${drag ? 'drag' : ''}`}
-            onClick={() => inputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-            onDragLeave={() => setDrag(false)}
-            onDrop={(e) => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files); }}
-          >
-            <div className="big">{uploading ? '上传中…' : '拖拽视频到这里 · 或点击选择文件'}</div>
-            <div className="small">支持多选 · 单文件 ≤ 5 GB</div>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="video/*"
-              multiple
-              hidden
-              onChange={(e) => handleFiles(e.target.files)}
-            />
-          </div>
+          <UploadQueue withCaption onUploaded={load} />
         </div>
       </div>
 

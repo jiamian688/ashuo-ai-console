@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
+import UploadQueue from '../components/UploadQueue.jsx';
 
 const TOOLS = [
   { key: 'clips', icon: '🖼', tint: '#eef0fb', color: '#6c5ce7', title: '剪辑管理', desc: '视频剪辑和封面图生成', to: '/clips' },
@@ -51,9 +52,10 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ done: 0, queued: 0, failed: 0, xAccounts: 0 });
   const [todos, setTodos] = useState([]);
 
+  const loadStats = () => api.stats().then(setStats).catch(() => {});
   const loadTodos = () => api.listTodos().then(setTodos).catch(() => {});
   useEffect(() => {
-    api.stats().then(setStats).catch(() => {});
+    loadStats();
     loadTodos();
   }, []);
 
@@ -86,6 +88,13 @@ export default function Dashboard() {
         <div className="stat-card"><div className="stat-icon blue">◷</div><div><div className="label">当前队列</div><div className="value">{stats.queued}</div></div></div>
         <div className="stat-card"><div className="stat-icon amber">⚠</div><div><div className="label">今日失败</div><div className="value">{stats.failed}</div></div></div>
         <div className="stat-card"><div className="stat-icon green">👥</div><div><div className="label">X 账号活跃</div><div className="value">{stats.xAccounts}</div></div></div>
+      </div>
+
+      <div className="card" style={{ marginTop: 8 }}>
+        <div className="card-head">上传新任务 <span className="muted">· 多选视频 · 发布到 TG 社群</span></div>
+        <div className="card-body">
+          <UploadQueue onUploaded={loadStats} />
+        </div>
       </div>
 
       <div className="section-head">
