@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import path from 'path';
 import ffmpegStatic from 'ffmpeg-static';
 
 const FFMPEG = ffmpegStatic || 'ffmpeg';
@@ -66,4 +67,35 @@ export async function extractThumbnail({ input, output, at }) {
     // thumbnail 滤镜在前 200 帧里挑最有代表性的一帧
     await run(['-y', '-i', input, '-vf', `thumbnail=n=200,${FIT}`, '-frames:v', '1', '-q:v', '2', output]);
   }
+}
+
+// 读取视频时长(秒)。Render 上没有 ffprobe,改用 ffmpeg 读取并从 stderr 解析 Duration。
+export function probeDuration(input) {
+  return new Promise((resolve) => {
+    const proc = spawn(FFMPEG, ['-i', input]);
+    let stderr = '';
+    proc.stderr.on('data', (d) => (stderr += d.toString()));
+    proc.on('error', () => resolve(0));
+    proc.on('close', () => {
+      const m = stderr.match(/Duration:\s*(\d+):(\d+):(\d+\.?\d*)/);
+      if (!m) return resolve(0);
+      resolve((+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]));
+    });
+  });
+}
+
+// 截取 N 张"最精彩"的帧:沿时间轴在 10%~90% 区间均匀取点(避开片头片尾黑场),
+// 每个点用 thumbnail 在邻近若干帧里挑最有代表性的一张。返回生成的图片路径数组。
+export async function extractHighlights({ input, outDir, baseName, count = 3 }) {
+  const dur = await probeDuration(input);
+  const paths = [];
+  for (let i = 0; i < count; i++) {
+    const frac = count === 1 ? 0.5 : 0.1 + (0.8 * i) / (count - 1);
+    const ts = dur > 0 ? dur * frac : i * 2; // 拿不到时长就退化成固定间隔
+    const out = path.join(outDir, `${baseName}-${i + 1}.jpg`);
+    await run(['-y', '-ss', ts.toFixed(2), '-i', input,
+      '-vf', 'thumbnail=n=40', '-frames:v', '1', '-q:v', '2', out]);
+    paths.push(out);
+  }
+  return paths;
 }

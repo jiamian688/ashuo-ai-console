@@ -63,11 +63,11 @@ export default function UploadQueue({ withCaption = false, onUploaded }) {
     <div>
       {withCaption && (
         <>
-          <div className="field-label">配文(可选,作为 Telegram caption)</div>
+          <div className="field-label">主题 / 关键词(AI 自动生成文案 + 标签 · 留空用默认)</div>
           <textarea
             className="text-input"
             style={{ width: '100%', minHeight: 64, resize: 'vertical', marginBottom: 20 }}
-            placeholder="给这条视频写点说明文字…"
+            placeholder="例如:健身日常 / 海边度假 …… AI 会据此生成吸引人的文案和话题标签"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
           />

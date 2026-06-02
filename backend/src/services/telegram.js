@@ -67,3 +67,41 @@ export async function postVideoToTelegram({ filePath, caption }) {
   }
   return { skipped: false, messageId: data.result?.message_id };
 }
+
+// 把「视频 + 多张图片 + 文案」作为一组(media group)一条消息发出。
+// 文案挂在第一个媒体上(视频优先)。photoPaths 为图片路径数组。
+export async function postMediaGroupToTelegram({ videoPath, photoPaths = [], caption }) {
+  const { token, chatId } = creds();
+  if (!token || !chatId) {
+    return { skipped: true, reason: 'TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 未配置,跳过真实发布' };
+  }
+
+  const form = new FormData();
+  form.append('chat_id', chatId);
+  const media = [];
+  let idx = 0;
+
+  const attach = (filePath, type) => {
+    const field = `file${idx++}`;
+    const item = { type, media: `attach://${field}` };
+    if (media.length === 0 && caption) item.caption = caption; // 文案放第一个媒体
+    if (type === 'video') item.supports_streaming = true;
+    media.push(item);
+    form.append(field, new Blob([fs.readFileSync(filePath)]), path.basename(filePath));
+  };
+
+  if (videoPath) attach(videoPath, 'video');
+  for (const p of photoPaths) attach(p, 'photo');
+
+  if (media.length < 2) {
+    throw new Error('媒体组至少需要 2 个媒体');
+  }
+  form.append('media', JSON.stringify(media));
+
+  const res = await fetch(`${API}/bot${token}/sendMediaGroup`, { method: 'POST', body: form });
+  const data = await res.json();
+  if (!data.ok) {
+    throw new Error('Telegram sendMediaGroup 错误: ' + (data.description || res.status));
+  }
+  return { skipped: false, count: data.result?.length };
+}
