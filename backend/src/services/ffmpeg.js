@@ -32,7 +32,8 @@ function run(args) {
 // 裁剪视频,可选叠加图片水印
 // start/end 接受秒数或 "mm:ss";watermark 为图片路径;wmPosition ∈ br/bl/tr/tl
 // wmWidth 水印宽度(px);wmOpacity 不透明度(0~1)
-export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br', wmWidth = 160, wmOpacity = 0.65 }) {
+// preset:编码速度档位。Render 免费套餐 CPU 极弱,自动发布走 'ultrafast' 才跑得完。
+export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br', wmWidth = 160, wmOpacity = 0.65, preset = 'veryfast' }) {
   const args = ['-y'];
   if (start) args.push('-ss', String(start));
   if (end) args.push('-to', String(end));
@@ -46,7 +47,7 @@ export async function processVideo({ input, output, start, end, watermark, wmPos
       `[1]format=rgba,colorchannelmixer=aa=${wmOpacity},scale=${wmWidth}:-1[wm];[0][wm]overlay=${pos}`);
   }
 
-  args.push('-c:v', 'libx264', '-preset', 'veryfast', '-c:a', 'aac', '-movflags', '+faststart', output);
+  args.push('-c:v', 'libx264', '-preset', preset, '-c:a', 'aac', '-movflags', '+faststart', output);
   await run(args);
 }
 

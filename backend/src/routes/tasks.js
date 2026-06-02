@@ -36,6 +36,17 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 * 1024 }, // 5 GB
 });
 
+// 启动自愈:免费实例可能在处理视频时被休眠/重启,导致任务永远卡在 processing。
+// 服务一启动就把这些「半途而废」的任务标记为失败,避免列表里一直转圈。
+try {
+  const r = db.prepare(
+    `UPDATE tasks SET status='failed', error='处理中断(服务重启,可能是视频过大或免费实例休眠),请重新上传或先用本地剪辑工具压缩' WHERE status IN ('processing','queued')`
+  ).run();
+  if (r.changes > 0) console.log(`[启动自愈] 重置 ${r.changes} 个卡住的任务为 failed`);
+} catch (e) {
+  console.error('[启动自愈] 失败:', e.message);
+}
+
 const router = Router();
 
 // 列表(仅当前用户上传的）
@@ -115,6 +126,7 @@ async function processTask(id, originalPath, topic) {
           wmPosition: process.env.WM_POSITION || 'tr',
           wmWidth: Number(process.env.WM_WIDTH) || 150,
           wmOpacity: Number(process.env.WM_OPACITY) || 0.9,
+          preset: process.env.WM_PRESET || 'ultrafast', // 免费套餐 CPU 弱,最快档才跑得完
         });
         temps.push(wmOut);
         if (fs.statSync(wmOut).size <= TG_MAX) videoForPost = wmOut;
