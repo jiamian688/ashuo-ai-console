@@ -109,7 +109,13 @@ async function processTask(id, originalPath, topic) {
     if (wm) {
       try {
         const wmOut = path.join(uploadDir, `wm-${id}-${Date.now()}.mp4`);
-        await processVideo({ input: originalPath, output: wmOut, watermark: wm, wmPosition: process.env.WM_POSITION || 'br' });
+        // 固定右上角、尺寸小、不挡画面
+        await processVideo({
+          input: originalPath, output: wmOut, watermark: wm,
+          wmPosition: process.env.WM_POSITION || 'tr',
+          wmWidth: Number(process.env.WM_WIDTH) || 150,
+          wmOpacity: Number(process.env.WM_OPACITY) || 0.9,
+        });
         temps.push(wmOut);
         if (fs.statSync(wmOut).size <= TG_MAX) videoForPost = wmOut;
         else console.warn(`[task ${id}] 水印后超 50MB,改发原视频`);

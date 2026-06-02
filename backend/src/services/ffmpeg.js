@@ -31,7 +31,8 @@ function run(args) {
 
 // 裁剪视频,可选叠加图片水印
 // start/end 接受秒数或 "mm:ss";watermark 为图片路径;wmPosition ∈ br/bl/tr/tl
-export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br' }) {
+// wmWidth 水印宽度(px);wmOpacity 不透明度(0~1)
+export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br', wmWidth = 160, wmOpacity = 0.65 }) {
   const args = ['-y'];
   if (start) args.push('-ss', String(start));
   if (end) args.push('-to', String(end));
@@ -40,9 +41,9 @@ export async function processVideo({ input, output, start, end, watermark, wmPos
   if (watermark) {
     args.push('-i', watermark);
     const pos = WM_POS[wmPosition] || WM_POS.br;
-    // 水印缩放到 160px 宽、65% 不透明,叠加到指定角
+    // 水印缩放到指定宽度、指定不透明度,叠加到指定角
     args.push('-filter_complex',
-      `[1]format=rgba,colorchannelmixer=aa=0.65,scale=160:-1[wm];[0][wm]overlay=${pos}`);
+      `[1]format=rgba,colorchannelmixer=aa=${wmOpacity},scale=${wmWidth}:-1[wm];[0][wm]overlay=${pos}`);
   }
 
   args.push('-c:v', 'libx264', '-preset', 'veryfast', '-c:a', 'aac', '-movflags', '+faststart', output);
