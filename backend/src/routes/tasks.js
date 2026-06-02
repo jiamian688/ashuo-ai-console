@@ -126,8 +126,9 @@ async function processTask(id, originalPath, topic) {
           wmPosition: process.env.WM_POSITION || 'tr',
           wmWidth: Number(process.env.WM_WIDTH) || 150,
           wmOpacity: Number(process.env.WM_OPACITY) || 0.9,
-          preset: process.env.WM_PRESET || 'ultrafast', // 免费套餐 CPU 弱,最快档才跑得完
-          maxHeight: Number(process.env.WM_MAX_HEIGHT) || 720, // 压到 720p,编码快一大截、体积更小
+          preset: process.env.WM_PRESET || 'veryfast', // VPS CPU 够强,用压缩更优的档(不再迁就免费套餐的 ultrafast)
+          maxHeight: Number(process.env.WM_MAX_HEIGHT) || 720, // 压到 720p,体积更小
+          crf: Number(process.env.WM_CRF) || 23, // 控制体积/画质,避免水印后超 50MB 退回原视频
         });
         temps.push(wmOut);
         if (fs.statSync(wmOut).size <= TG_MAX) videoForPost = wmOut;

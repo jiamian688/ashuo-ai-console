@@ -34,7 +34,7 @@ function run(args) {
 // wmWidth 水印宽度(px);wmOpacity 不透明度(0~1)
 // preset:编码速度档位。Render 免费套餐 CPU 极弱,自动发布走 'ultrafast' 才跑得完。
 // maxHeight:>0 时把视频按比例缩到「最高这么多像素高」(只缩不放),大幅降低编码量和体积。
-export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br', wmWidth = 160, wmOpacity = 0.65, preset = 'veryfast', maxHeight = 0 }) {
+export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br', wmWidth = 160, wmOpacity = 0.65, preset = 'veryfast', maxHeight = 0, crf = 0 }) {
   const args = ['-y'];
   if (start) args.push('-ss', String(start));
   if (end) args.push('-to', String(end));
@@ -55,7 +55,9 @@ export async function processVideo({ input, output, start, end, watermark, wmPos
     args.push('-vf', downscale);
   }
 
-  args.push('-c:v', 'libx264', '-preset', preset, '-c:a', 'aac', '-movflags', '+faststart', output);
+  args.push('-c:v', 'libx264', '-preset', preset);
+  if (crf > 0) args.push('-crf', String(crf)); // 质量/体积控制:越大越小,18~28 常用,23 接近视觉无损
+  args.push('-c:a', 'aac', '-movflags', '+faststart', output);
   await run(args);
 }
 
