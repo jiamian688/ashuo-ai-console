@@ -127,6 +127,7 @@ async function processTask(id, originalPath, topic) {
           wmWidth: Number(process.env.WM_WIDTH) || 150,
           wmOpacity: Number(process.env.WM_OPACITY) || 0.9,
           preset: process.env.WM_PRESET || 'ultrafast', // 免费套餐 CPU 弱,最快档才跑得完
+          maxHeight: Number(process.env.WM_MAX_HEIGHT) || 720, // 压到 720p,编码快一大截、体积更小
         });
         temps.push(wmOut);
         if (fs.statSync(wmOut).size <= TG_MAX) videoForPost = wmOut;

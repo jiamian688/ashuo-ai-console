@@ -33,18 +33,26 @@ function run(args) {
 // start/end 接受秒数或 "mm:ss";watermark 为图片路径;wmPosition ∈ br/bl/tr/tl
 // wmWidth 水印宽度(px);wmOpacity 不透明度(0~1)
 // preset:编码速度档位。Render 免费套餐 CPU 极弱,自动发布走 'ultrafast' 才跑得完。
-export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br', wmWidth = 160, wmOpacity = 0.65, preset = 'veryfast' }) {
+// maxHeight:>0 时把视频按比例缩到「最高这么多像素高」(只缩不放),大幅降低编码量和体积。
+export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br', wmWidth = 160, wmOpacity = 0.65, preset = 'veryfast', maxHeight = 0 }) {
   const args = ['-y'];
   if (start) args.push('-ss', String(start));
   if (end) args.push('-to', String(end));
   args.push('-i', input);
 
+  // 主画面预处理:可选限制最大高度(等比、不放大、保证偶数边长)
+  const downscale = maxHeight > 0 ? `scale=-2:'min(${maxHeight}\\,ih)'` : null;
+
   if (watermark) {
     args.push('-i', watermark);
     const pos = WM_POS[wmPosition] || WM_POS.br;
+    const base = downscale ? `[0]${downscale}[v];` : '';
+    const vin = downscale ? '[v]' : '[0]';
     // 水印缩放到指定宽度、指定不透明度,叠加到指定角
     args.push('-filter_complex',
-      `[1]format=rgba,colorchannelmixer=aa=${wmOpacity},scale=${wmWidth}:-1[wm];[0][wm]overlay=${pos}`);
+      `${base}[1]format=rgba,colorchannelmixer=aa=${wmOpacity},scale=${wmWidth}:-1[wm];${vin}[wm]overlay=${pos}`);
+  } else if (downscale) {
+    args.push('-vf', downscale);
   }
 
   args.push('-c:v', 'libx264', '-preset', preset, '-c:a', 'aac', '-movflags', '+faststart', output);
