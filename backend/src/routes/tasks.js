@@ -98,12 +98,6 @@ async function processTask(id, originalPath, topic) {
   const temps = [];
   try {
     const size = fs.existsSync(originalPath) ? fs.statSync(originalPath).size : 0;
-    if (size > TG_MAX) {
-      throw new Error(
-        `视频 ${(size / 1048576).toFixed(0)}MB 超过 Telegram 机器人 50MB 发送上限,` +
-        `请先用本地剪辑工具裁剪/压缩到 50MB 内再上传`
-      );
-    }
 
     // 1) 文案 + 标签(AI;失败则退回用户填的主题)
     let caption = '';
@@ -114,27 +108,47 @@ async function processTask(id, originalPath, topic) {
       console.error(`[task ${id}] 文案生成失败,改用原文:`, e.message);
     }
 
-    // 2) 固定 logo 水印(有 logo 才加;水印后若超 50MB 则退回原视频)
+    // 2) 加固定 logo 水印 + 压缩到 50MB 内
+    //    关键:原视频即使超过 50MB 也不再直接拒绝,而是靠转码压缩。
+    //    逐级加大压缩力度(720p→540p→480p),压到 ≤50MB 就用;只有压到 480p 仍超限才报错。
     let videoForPost = originalPath;
     const wm = defaultWatermark();
-    if (wm) {
-      try {
-        const wmOut = path.join(uploadDir, `wm-${id}-${Date.now()}.mp4`);
-        // 固定右上角、尺寸小、不挡画面
-        await processVideo({
-          input: originalPath, output: wmOut, watermark: wm,
-          wmPosition: process.env.WM_POSITION || 'tr',
-          wmWidth: Number(process.env.WM_WIDTH) || 150,
-          wmOpacity: Number(process.env.WM_OPACITY) || 0.9,
-          preset: process.env.WM_PRESET || 'veryfast', // VPS CPU 够强,用压缩更优的档(不再迁就免费套餐的 ultrafast)
-          maxHeight: Number(process.env.WM_MAX_HEIGHT) || 720, // 压到 720p,体积更小
-          crf: Number(process.env.WM_CRF) || 23, // 控制体积/画质,避免水印后超 50MB 退回原视频
-        });
-        temps.push(wmOut);
-        if (fs.statSync(wmOut).size <= TG_MAX) videoForPost = wmOut;
-        else console.warn(`[task ${id}] 水印后超 50MB,改发原视频`);
-      } catch (e) {
-        console.error(`[task ${id}] 加水印失败,改发原视频:`, e.message);
+    if (wm || size > TG_MAX) {
+      const passes = [
+        { maxHeight: Number(process.env.WM_MAX_HEIGHT) || 720, crf: Number(process.env.WM_CRF) || 23 },
+        { maxHeight: 540, crf: 28 },
+        { maxHeight: 480, crf: 32 },
+      ];
+      for (let i = 0; i < passes.length; i++) {
+        const { maxHeight, crf } = passes[i];
+        const out = path.join(uploadDir, `wm-${id}-${i}-${Date.now()}.mp4`);
+        try {
+          await processVideo({
+            input: originalPath, output: out, watermark: wm || undefined,
+            wmPosition: process.env.WM_POSITION || 'tr',
+            wmWidth: Number(process.env.WM_WIDTH) || 150,
+            wmOpacity: Number(process.env.WM_OPACITY) || 0.9,
+            preset: process.env.WM_PRESET || 'veryfast', // VPS CPU 够强,用压缩更优的档
+            maxHeight, crf,
+          });
+          temps.push(out);
+          const outSize = fs.statSync(out).size;
+          if (outSize <= TG_MAX) { videoForPost = out; break; }
+          console.warn(`[task ${id}] 第 ${i + 1} 档压缩后仍 ${(outSize / 1048576).toFixed(0)}MB,继续加大压缩`);
+        } catch (e) {
+          console.error(`[task ${id}] 转码失败(第 ${i + 1} 档):`, e.message);
+          break; // 转码本身报错就别再试更狠的档了
+        }
+      }
+      // 三档都没能压到 50MB 内
+      if (videoForPost === originalPath) {
+        if (size > TG_MAX) {
+          throw new Error(
+            `视频 ${(size / 1048576).toFixed(0)}MB,压到 480p 后仍超 Telegram 机器人 50MB 上限,` +
+            `请先用本地剪辑工具裁剪/压缩后再上传`
+          );
+        }
+        console.warn(`[task ${id}] 加水印/压缩未成功,改发原视频(原视频未超 50MB)`);
       }
     }
 
