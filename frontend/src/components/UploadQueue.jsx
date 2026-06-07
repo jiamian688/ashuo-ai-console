@@ -73,7 +73,7 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
       const seen = new Set(prev.map((it) => it.name + ':' + it.size));
       const adds = incoming
         .filter((f) => !seen.has(f.name + ':' + f.size))
-        .map((f) => ({ uid: ++_uid, file: f, name: f.name, size: f.size, status: 'pending', type: '' }));
+        .map((f) => ({ uid: `${Date.now()}-${++_uid}`, file: f, name: f.name, size: f.size, status: 'pending', keyword: '' }));
       return [...prev, ...adds];
     });
   };
@@ -84,9 +84,9 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
   };
   const clearAll = () => { if (!uploading) setItems([]); };
 
-  // 给单个待上传文件设类型(自慰/性爱/跟随上方),决定 AI 文案与标签的方向
-  const setType = (uid, type) => {
-    setItems((prev) => prev.map((it) => (it.uid === uid ? { ...it, type } : it)));
+  // 给单个待上传文件设它自己的关键词(一一对应:视频N → 关键词N),决定该条 AI 文案与标签
+  const setKeyword = (uid, keyword) => {
+    setItems((prev) => prev.map((it) => (it.uid === uid ? { ...it, keyword } : it)));
   };
 
   const cancelItem = (uid) => {
@@ -144,8 +144,9 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
     try {
       const form = new FormData();
       form.append('files', it.file);
-      // 关键词 = 上方默认 + 该文件单独选的类型(都填则拼一起,如「肌肉猛男 性爱」)
-      const kw = [caption.trim(), it.type].filter(Boolean).join(' ');
+      // 关键词 = 上方默认 + 该文件自己的关键词(都填则拼一起,如「肌肉猛男 性爱」;
+      // 想一一对应就把上方留空,每个文件单独填)
+      const kw = [caption.trim(), (it.keyword || '').trim()].filter(Boolean).join(' ');
       if (withCaption && kw) form.append('caption', kw);
       const r = await api.uploadTasks(form, (info) => {
         real.pct = info.percent;
@@ -228,11 +229,11 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
     <div>
       {withCaption && (
         <>
-          <div className="field-label">主题 / 关键词 · 默认类型(AI 据此生成文案 + 标签 · 每个文件下方可单独改)</div>
+          <div className="field-label">默认关键词(可留空 · 想给每个视频单独填,就用下方每行的「关键词N」框,视频1↔关键词1 一一对应)</div>
           <textarea
             className="text-input"
             style={{ width: '100%', minHeight: 64, resize: 'vertical', marginBottom: 20 }}
-            placeholder="填类型让 AI 写得更准:自慰 / 打飞机 → 自慰向文案;性爱 / 操 → 性爱向文案。也可加细节如「肌肉猛男 性爱」。批量混合类型时,下方每个文件能单独选类型"
+            placeholder="留空则只用每个文件自己的关键词;若填了,会和每个文件的关键词拼在一起(如默认「肌肉猛男」+ 某文件「性爱」→ 肌肉猛男 性爱)"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
           />
@@ -288,27 +289,41 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
           </div>
 
           <div className="queue-list">
-            {items.map((it) => (
+            {items.map((it, idx) => (
               it.status === 'pending' ? (
-                // 待上传:紧凑一行
+                // 待上传:序号 + 文件名 + 该文件独立关键词(视频N ↔ 关键词N)
                 <div className="queue-row" key={it.uid}>
                   <div className="qinfo">
-                    <div className="fname">{it.name}</div>
+                    <div className="fname">
+                      <span className="qnum" style={{ display: 'inline-block', minWidth: 22, marginRight: 6, padding: '0 6px', borderRadius: 6, background: '#eef0fb', color: '#6c5ce7', fontWeight: 600, textAlign: 'center' }}>{idx + 1}</span>
+                      {it.name}
+                    </div>
                     <div className="fsize">{fmtSize(it.size)}</div>
                   </div>
-                  <div className="qstatus">
-                    {withCaption && (
+                  {withCaption && (
+                    <div className="qkw" style={{ display: 'flex', gap: 6, alignItems: 'center', flex: 1, minWidth: 200, margin: '0 10px' }}>
+                      <input
+                        className="kw-input"
+                        type="text"
+                        value={it.keyword || ''}
+                        onChange={(e) => setKeyword(it.uid, e.target.value)}
+                        placeholder={`关键词${idx + 1}(留空用上方默认)`}
+                        style={{ flex: 1, minWidth: 100, padding: '5px 8px', border: '1px solid #d8dbe8', borderRadius: 6, fontSize: 13 }}
+                      />
                       <select
                         className="type-select"
-                        value={it.type || ''}
-                        onChange={(e) => setType(it.uid, e.target.value)}
-                        title="该视频类型 · 影响 AI 文案与标签"
+                        value=""
+                        onChange={(e) => { if (e.target.value) setKeyword(it.uid, e.target.value); }}
+                        title="快速填类型(会写进左边关键词框)"
+                        style={{ padding: '5px 4px', border: '1px solid #d8dbe8', borderRadius: 6, fontSize: 13 }}
                       >
-                        <option value="">类型:跟随上方</option>
+                        <option value="">快填…</option>
                         <option value="自慰">自慰 / 打飞机</option>
                         <option value="性爱">性爱</option>
                       </select>
-                    )}
+                    </div>
+                  )}
+                  <div className="qstatus">
                     <span className="muted">待上传</span>
                     <button className="qdel" onClick={() => removeItem(it.uid)} title="移除">×</button>
                   </div>
