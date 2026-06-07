@@ -63,7 +63,14 @@ router.get('/stats', (req, res) => {
   const done = db.prepare(`SELECT COUNT(*) n FROM tasks WHERE status='posted' AND date(created_at)=?`).get(today).n;
   const queued = db.prepare(`SELECT COUNT(*) n FROM tasks WHERE status IN ('queued','processing')`).get().n;
   const failed = db.prepare(`SELECT COUNT(*) n FROM tasks WHERE status='failed' AND date(created_at)=?`).get(today).n;
-  res.json({ done, queued, failed, xAccounts: 2 });
+  const team = db.prepare(`SELECT COALESCE(SUM(tokens),0) tokens, COALESCE(SUM(cost_usd),0) cost FROM tasks WHERE date(created_at)=?`).get(today);
+  const me = req.user?.username || 'sishuo';
+  const mine = db.prepare(`SELECT COALESCE(SUM(tokens),0) tokens, COALESCE(SUM(cost_usd),0) cost FROM tasks WHERE date(created_at)=? AND uploader=?`).get(today, me);
+  res.json({
+    done, queued, failed, xAccounts: 2,
+    tokensTeam: team.tokens, costTeam: team.cost,
+    tokensYou: mine.tokens, costYou: mine.cost,
+  });
 });
 
 // 上传视频 -> 入队 -> 异步发布
@@ -103,11 +110,13 @@ async function processTask(id, originalPath, topic) {
     let caption = '';
     let captionHtml = null;
     let captionMode = 'template';
+    let usage = { tokens: 0, costUsd: 0 };
     try {
       const r = await generateChannelCaption({ topic });
       caption = r.caption;
       captionHtml = r.captionHtml;
       captionMode = r.mode; // claude/grok=真用了AI / template=没配key或降级
+      usage = r.usage || usage;
     } catch (e) {
       const fallback = buildCaption((topic || '').trim(), process.env.DEFAULT_TAGS || '#每日更新 #精彩视频');
       caption = fallback.text;
@@ -116,7 +125,8 @@ async function processTask(id, originalPath, topic) {
       console.error(`[task ${id}] 文案生成失败,改用原文:`, e.message);
     }
     // 先把文案存下来,失败也能看到当时生成了什么
-    db.prepare(`UPDATE tasks SET caption=?, caption_mode=? WHERE id=?`).run(caption, captionMode, id);
+    db.prepare(`UPDATE tasks SET caption=?, caption_mode=?, tokens=?, cost_usd=? WHERE id=?`)
+      .run(caption, captionMode, usage.tokens, usage.costUsd, id);
 
     // 2) 加固定 logo 水印 + 压缩到 50MB 内
     //    关键:原视频即使超过 50MB 也不再直接拒绝,而是靠转码压缩。

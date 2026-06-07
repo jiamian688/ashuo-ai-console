@@ -17,6 +17,12 @@ function greeting() {
   return '晚上好';
 }
 
+const fmtTok = (n) => {
+  n = Number(n) || 0;
+  return n >= 10000 ? (n / 10000).toFixed(1) + '万' : String(n);
+};
+const fmtUsd = (n) => '$' + (Number(n) || 0).toFixed(4);
+
 function TodoPanel({ title, bucket, items, onAdd, onToggle, onDelete, placeholder }) {
   const [value, setValue] = useState('');
   const submit = (e) => {
@@ -48,7 +54,7 @@ function TodoPanel({ title, bucket, items, onAdd, onToggle, onDelete, placeholde
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ done: 0, queued: 0, failed: 0, xAccounts: 0 });
+  const [stats, setStats] = useState({ done: 0, queued: 0, failed: 0, xAccounts: 0, tokensTeam: 0, costTeam: 0, tokensYou: 0, costYou: 0 });
   const [todos, setTodos] = useState([]);
 
   const loadStats = () => api.stats().then(setStats).catch(() => {});
@@ -79,7 +85,7 @@ export default function Dashboard() {
         <div className="status"><span className="dot" /> 服务运行中</div>
         <h1>{greeting()}，<span className="name">sishuo</span></h1>
         <div className="sub">{today} · 你的私人工作台 · 仅显示你的任务</div>
-        <div className="token-pill">🌗 今日团队 token <b>0</b> · 你: 0</div>
+        <div className="token-pill">🌗 今日团队 <b>{fmtTok(stats.tokensTeam)}</b> token · <b>{fmtUsd(stats.costTeam)}</b> · 你 {fmtTok(stats.tokensYou)} / {fmtUsd(stats.costYou)}</div>
       </section>
 
       <div className="stats">

@@ -1,5 +1,5 @@
 // 频道视频文案 + 标签生成。配置了 AI(Claude 或 Grok)就用 AI,否则用本地模板兜底。
-import { chat, activeProvider } from './llm.js';
+import { chatWithUsage, activeProvider } from './llm.js';
 
 export { aiEnabled } from './llm.js';
 
@@ -39,7 +39,7 @@ export async function generateChannelCaption({ topic } = {}) {
   if (!provider) {
     const base = t || '精彩内容,不容错过 🔥';
     const { text, html } = buildCaption(base, defaultTags);
-    return { caption: text, captionHtml: html, mode: 'template' };
+    return { caption: text, captionHtml: html, mode: 'template', usage: { tokens: 0, costUsd: 0 } };
   }
 
   const kw = t
@@ -53,7 +53,7 @@ export async function generateChannelCaption({ topic } = {}) {
     `第二部分:3~5 个与内容高度相关的中文话题标签,以 # 开头,用空格分隔,全部放在同一行。\n` +
     `只输出这两部分和中间的「===」,不要任何解释、不要引号、不要写「第一部分」之类的字样。`;
 
-  const raw = await chat({ prompt, maxTokens: 500 });
+  const { text: raw, usage } = await chatWithUsage({ prompt, maxTokens: 500 });
   if (!raw) throw new Error('AI 返回空文案');
 
   // 拆出正文与标签
@@ -74,5 +74,5 @@ export async function generateChannelCaption({ topic } = {}) {
   }
 
   const { text, html } = buildCaption(narrative, tags);
-  return { caption: text, captionHtml: html, mode: provider };
+  return { caption: text, captionHtml: html, mode: provider, usage };
 }

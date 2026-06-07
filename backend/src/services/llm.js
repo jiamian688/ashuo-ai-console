@@ -19,12 +19,23 @@ export function aiEnabled() {
   return activeProvider() !== null;
 }
 
-// 给一段 prompt,返回纯文本。未配置或调用失败时抛错。
-export async function chat({ prompt, maxTokens = 600 }) {
+// 内部:返回 { text, usage },usage = { tokens, costUsd }
+async function chatRaw(prompt, maxTokens) {
   const provider = activeProvider();
   if (provider === 'grok') return chatGrok(prompt, maxTokens);
   if (provider === 'claude') return chatClaude(prompt, maxTokens);
   throw new Error('未配置 AI(在 backend/.env 填 XAI_API_KEY 或 ANTHROPIC_API_KEY)');
+}
+
+// 给一段 prompt,返回纯文本。未配置或调用失败时抛错。
+export async function chat({ prompt, maxTokens = 600 }) {
+  const { text } = await chatRaw(prompt, maxTokens);
+  return text;
+}
+
+// 同 chat,但额外带回消耗:{ text, usage: { tokens, costUsd } }
+export async function chatWithUsage({ prompt, maxTokens = 600 }) {
+  return chatRaw(prompt, maxTokens);
 }
 
 async function chatClaude(prompt, maxTokens) {
@@ -45,7 +56,8 @@ async function chatClaude(prompt, maxTokens) {
   if (data.error) throw new Error(data.error.message);
   const text = (data.content?.[0]?.text || '').trim();
   if (!text) throw new Error('AI 返回空内容');
-  return text;
+  const u = data.usage || {};
+  return { text, usage: { tokens: (u.input_tokens || 0) + (u.output_tokens || 0), costUsd: 0 } };
 }
 
 // xAI 的接口是 OpenAI 兼容格式
@@ -68,5 +80,6 @@ async function chatGrok(prompt, maxTokens) {
   }
   const text = (data.choices?.[0]?.message?.content || '').trim();
   if (!text) throw new Error('AI 返回空内容');
-  return text;
+  const u = data.usage || {};
+  return { text, usage: { tokens: u.total_tokens || 0, costUsd: (u.cost_in_usd_ticks || 0) / 1e9 } };
 }
