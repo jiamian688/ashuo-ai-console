@@ -40,16 +40,17 @@ function run(args) {
 // blurBoxes:[{x,y,w,h}] 像素矩形数组(基于原始分辨率),逐个高斯模糊,遮住 OCR 识别出的文字/水印。
 // preset:编码速度档位。Render 免费套餐 CPU 极弱,自动发布走 'ultrafast' 才跑得完。
 // maxHeight:>0 时把视频按比例缩到「最高这么多像素高」(只缩不放),大幅降低编码量和体积。
-export async function processVideo({ input, output, start, end, watermark, wmIsVideo = false, wmPosition = 'br', wmWidth = 220, wmOpacity = null, wmMargin = 20, cropTop = 0, cropBottom = 0, cropLeft = 0, cropRight = 0, blurBoxes = [], preset = 'veryfast', maxHeight = 0, crf = 0 }) {
+// wmScale:水印宽度占视频宽度的比例(自适应,不同分辨率下视觉大小一致);wmWidth>0 时改用固定像素
+export async function processVideo({ input, output, start, end, watermark, wmIsVideo = false, wmPosition = 'br', wmScale = 0.20, wmWidth = 0, wmOpacity = null, wmMargin = 0, cropTop = 0, cropBottom = 0, cropLeft = 0, cropRight = 0, blurBoxes = [], preset = 'veryfast', maxHeight = 0, crf = 0 }) {
   const args = ['-y'];
   if (start) args.push('-ss', String(start));
   if (end) args.push('-to', String(end));
   args.push('-i', input);
 
-  // 裁边需要先知道原始分辨率,才能换算成像素坐标(模糊框已是像素坐标,无需再探测)
+  // 裁边换算像素坐标、水印按比例缩放,都需要原始分辨率(模糊框已是像素坐标,无需再探测)
   const needCrop = cropTop > 0 || cropBottom > 0 || cropLeft > 0 || cropRight > 0;
   let W = 0, H = 0;
-  if (needCrop) ({ w: W, h: H } = await probeResolution(input));
+  if (needCrop || watermark) ({ w: W, h: H } = await probeResolution(input));
 
   // 主画面预处理:可选限制最大高度(等比、不放大、保证偶数边长)
   const downscale = maxHeight > 0 ? `scale=-2:'min(${maxHeight}\\,ih)'` : null;
@@ -91,9 +92,13 @@ export async function processVideo({ input, output, start, end, watermark, wmIsV
     const aa = wmOpacity == null ? (wmIsVideo ? 1 : 0.65) : wmOpacity;
     if (wmIsVideo) args.push('-stream_loop', '-1'); // 动态水印无限循环
     args.push('-i', watermark);
-    const pos = wmCoord(wmPosition, wmMargin);
+    // 水印宽度按视频宽度比例算(默认 20%),低分辨率视频自动变小、紧贴角落;wmWidth>0 时用固定像素
+    const wmW = wmWidth > 0 ? wmWidth : (W ? Math.max(80, even(W * wmScale)) : 200);
+    // 边距同样按比例,保证各分辨率下都紧贴角落
+    const margin = wmMargin > 0 ? wmMargin : (W ? Math.max(10, Math.round(W * 0.018)) : 18);
+    const pos = wmCoord(wmPosition, margin);
     const shortest = wmIsVideo ? ':shortest=1' : ''; // 主视频结束即收尾,避免无限循环
-    parts.push(`[1]format=rgba,colorchannelmixer=aa=${aa},scale=${wmWidth}:-1[wm]`);
+    parts.push(`[1]format=rgba,colorchannelmixer=aa=${aa},scale=${wmW}:-1[wm]`);
     parts.push(`${cur}[wm]overlay=${pos}${shortest}[outv]`);
     cur = '[outv]';
     mapArgs = ['-map', '[outv]', '-map', '0:a?']; // 取叠加后画面 + 主视频音轨(水印自带音轨忽略)

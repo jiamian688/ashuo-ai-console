@@ -69,7 +69,7 @@ export function autoCropFraction(boxes, edge, W, H, max = 0.25, marginFrac = 0.0
 
 // 在视频里检测「稳定出现」的文字区域(水印/字幕),返回像素坐标的偶数矩形数组。
 // 思路:沿时间轴抽 samples 帧做 OCR,只保留在多帧中重复出现的区域,过滤偶发误识别。
-export async function detectTextBoxes(input, { samples = 4, minConfidence = 45, lang = 'eng' } = {}) {
+export async function detectTextBoxes(input, { samples = 6, minConfidence = 30, lang = 'eng' } = {}) {
   const { w: W, h: H } = await probeResolution(input);
   if (!W || !H) return [];
   const dur = await probeDuration(input);
