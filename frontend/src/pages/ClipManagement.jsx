@@ -173,7 +173,7 @@ export default function ClipManagement() {
       </div>
 
       <div className="card">
-        <div className="card-head">单独制作帖子封面 <span className="muted">· 上传 3 张图拼成 794×422(不带水印 · 人脸居中)</span></div>
+        <div className="card-head">单独制作帖子封面 <span className="muted">· 上传 3 张图拼成 794×210(不带水印 · 人脸居中)</span></div>
         <div className="card-body">
           <form onSubmit={makeCover}>
             <div className="small" style={{ marginBottom: 8 }}>
@@ -195,7 +195,7 @@ export default function ClipManagement() {
           {coverError && <div className="error">{coverError}</div>}
           {coverResult?.cover && (
             <div style={{ marginTop: 16 }}>
-              <div className="field-label">帖子封面 · 794×422</div>
+              <div className="field-label">帖子封面 · 794×210</div>
               <img className="cover-preview" src={fileUrl(coverResult.cover)} alt="cover" />
               <div><a className="link" href={fileUrl(coverResult.cover)} download>下载封面 ↓</a></div>
             </div>

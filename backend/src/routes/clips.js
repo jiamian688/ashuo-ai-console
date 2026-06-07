@@ -123,7 +123,7 @@ router.post('/process', upload.fields([
   }
 });
 
-// 手动封面:上传 3 张图(人物生活照 + 性爱图等),拼成 794×422 帖子封面(不带水印,人脸居中偏上)
+// 手动封面:上传 3 张图(人物生活照 + 性爱图等),拼成 794×210 帖子封面(不带水印,人脸居中偏上)
 router.post('/cover', upload.array('images', 3), async (req, res) => {
   const files = req.files || [];
   if (files.length < 3) {
@@ -134,7 +134,7 @@ router.post('/cover', upload.array('images', 3), async (req, res) => {
   const coverName = `cover-manual-${stamp}.jpg`;
   const coverPath = path.join(outDir, coverName);
   try {
-    await makeTriptych({ images: files.map((f) => f.path), output: coverPath, W: 794, H: 422 });
+    await makeTriptych({ images: files.map((f) => f.path), output: coverPath, W: 794, H: 210 });
     res.json({ ok: true, cover: `/files/clips/${coverName}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
