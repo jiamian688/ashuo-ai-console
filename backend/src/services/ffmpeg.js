@@ -92,8 +92,19 @@ export async function processVideo({ input, output, start, end, watermark, wmIsV
     const aa = wmOpacity == null ? (wmIsVideo ? 1 : 0.65) : wmOpacity;
     if (wmIsVideo) args.push('-stream_loop', '-1'); // 动态水印无限循环
     args.push('-i', watermark);
-    // 水印宽度按视频宽度比例算(默认 20%),低分辨率视频自动变小、紧贴角落;wmWidth>0 时用固定像素
-    const wmW = wmWidth > 0 ? wmWidth : (W ? Math.max(80, even(W * wmScale)) : 200);
+    // 默认按水印原图大小叠加(用户自己设计的尺寸),仅当超过视频 60% 宽时才缩小;wmWidth>0 时用固定像素
+    let wmW;
+    if (wmWidth > 0) {
+      wmW = wmWidth;
+    } else {
+      const { w: nativeW } = await probeResolution(watermark);
+      if (nativeW > 0) {
+        const cap = W ? Math.round(W * 0.6) : nativeW;
+        wmW = even(Math.min(nativeW, cap));
+      } else {
+        wmW = W ? even(W * wmScale) : 200; // 探测失败时退回按比例
+      }
+    }
     // 边距同样按比例,保证各分辨率下都紧贴角落
     const margin = wmMargin > 0 ? wmMargin : (W ? Math.max(10, Math.round(W * 0.018)) : 18);
     const pos = wmCoord(wmPosition, margin);

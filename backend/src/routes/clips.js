@@ -57,15 +57,17 @@ router.post('/process', upload.fields([
     let boxes = [];
     if (autoBlurText || wantAutoCrop) boxes = await detectTextBoxes(input);
 
-    // 自动裁边:每条启用的边裁掉「刚好盖住该边文字」的厚度,夹在 0~25%,没文字就不裁
+    // 自动裁边:每条启用的边裁掉「刚好盖住该边文字」的厚度;OCR 没识别到该边文字时,
+    // 退回默认裁 12%(用户既然勾了这条边,就一定裁掉一些,不会出现「勾了却没裁」)
+    const DEFAULT_CROP = 0.12;
     let cropTop = 0, cropBottom = 0, cropLeft = 0, cropRight = 0;
-    if (wantAutoCrop && boxes.length) {
+    if (wantAutoCrop) {
       const { w: W, h: H } = await probeResolution(input);
       if (W && H) {
-        if (wantCropTop) cropTop = autoCropFraction(boxes, 'top', W, H);
-        if (wantCropBottom) cropBottom = autoCropFraction(boxes, 'bottom', W, H);
-        if (wantCropLeft) cropLeft = autoCropFraction(boxes, 'left', W, H);
-        if (wantCropRight) cropRight = autoCropFraction(boxes, 'right', W, H);
+        if (wantCropTop) cropTop = autoCropFraction(boxes, 'top', W, H) || DEFAULT_CROP;
+        if (wantCropBottom) cropBottom = autoCropFraction(boxes, 'bottom', W, H) || DEFAULT_CROP;
+        if (wantCropLeft) cropLeft = autoCropFraction(boxes, 'left', W, H) || DEFAULT_CROP;
+        if (wantCropRight) cropRight = autoCropFraction(boxes, 'right', W, H) || DEFAULT_CROP;
         result.crop = {
           top: Math.round(cropTop * 100), bottom: Math.round(cropBottom * 100),
           left: Math.round(cropLeft * 100), right: Math.round(cropRight * 100),
