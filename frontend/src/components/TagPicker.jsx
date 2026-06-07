@@ -16,7 +16,7 @@ const chip = (on) => ({
 });
 
 // 分类多选弹窗。initial:当前关键词字符串;onConfirm(新关键词字符串);onCancel()
-export default function TagPicker({ title = '选择分类', initial = '', onConfirm, onCancel }) {
+export default function TagPicker({ title = '选关键词', initial = '', onConfirm, onCancel }) {
   const initialWords = useMemo(() => (initial || '').split(/\s+/).filter(Boolean), [initial]);
   // 保留用户手输的、不在标签库里的词,确定时拼回前面
   const extras = useMemo(() => initialWords.filter((w) => !ALL_TAGS.has(w)), [initialWords]);

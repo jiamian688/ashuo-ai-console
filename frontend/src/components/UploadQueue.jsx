@@ -316,10 +316,10 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
                         type="button"
                         className="up-btn"
                         onClick={() => setPickerUid(it.uid)}
-                        title="打开分类弹窗,多选标签"
+                        title="打开关键词弹窗,多选标签"
                         style={{ whiteSpace: 'nowrap', padding: '5px 12px', border: '1px solid #6c5ce7', color: '#6c5ce7', background: '#fff', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
                       >
-                        选分类
+                        选关键词
                       </button>
                     </div>
                   )}
@@ -379,7 +379,7 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
 
       {pickerUid != null && (
         <TagPicker
-          title={`选择分类 · ${items.find((it) => it.uid === pickerUid)?.name || ''}`}
+          title={`选关键词 · ${items.find((it) => it.uid === pickerUid)?.name || ''}`}
           initial={items.find((it) => it.uid === pickerUid)?.keyword || ''}
           onCancel={() => setPickerUid(null)}
           onConfirm={(kw) => { setKeyword(pickerUid, kw); setPickerUid(null); }}
