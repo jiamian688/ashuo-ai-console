@@ -79,6 +79,7 @@ export const api = {
   telegramStatus: () => request('/telegram/status'),
   telegramTest: () => request('/telegram/test', { method: 'POST', body: JSON.stringify({ sendPing: true }) }),
   processClip: (formData) => request('/clips/process', { method: 'POST', body: formData }),
+  makeCover: (formData) => request('/clips/cover', { method: 'POST', body: formData }),
   socialStatus: () => request('/social/status'),
   socialTest: () => request('/social/test', { method: 'POST' }),
   postTweet: (text) => request('/social/post', { method: 'POST', body: JSON.stringify({ text }) }),
