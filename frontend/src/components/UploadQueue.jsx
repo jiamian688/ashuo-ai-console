@@ -73,7 +73,7 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
       const seen = new Set(prev.map((it) => it.name + ':' + it.size));
       const adds = incoming
         .filter((f) => !seen.has(f.name + ':' + f.size))
-        .map((f) => ({ uid: ++_uid, file: f, name: f.name, size: f.size, status: 'pending' }));
+        .map((f) => ({ uid: ++_uid, file: f, name: f.name, size: f.size, status: 'pending', type: '' }));
       return [...prev, ...adds];
     });
   };
@@ -83,6 +83,11 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
     setItems((prev) => prev.filter((it) => it.uid !== uid || it.status === 'uploading'));
   };
   const clearAll = () => { if (!uploading) setItems([]); };
+
+  // 给单个待上传文件设类型(自慰/性爱/跟随上方),决定 AI 文案与标签的方向
+  const setType = (uid, type) => {
+    setItems((prev) => prev.map((it) => (it.uid === uid ? { ...it, type } : it)));
+  };
 
   const cancelItem = (uid) => {
     const ac = aborts.current[uid];
@@ -139,7 +144,9 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
     try {
       const form = new FormData();
       form.append('files', it.file);
-      if (withCaption && caption.trim()) form.append('caption', caption.trim());
+      // 关键词 = 上方默认 + 该文件单独选的类型(都填则拼一起,如「肌肉猛男 性爱」)
+      const kw = [caption.trim(), it.type].filter(Boolean).join(' ');
+      if (withCaption && kw) form.append('caption', kw);
       const r = await api.uploadTasks(form, (info) => {
         real.pct = info.percent;
         real.loaded = info.loaded;
@@ -221,11 +228,11 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
     <div>
       {withCaption && (
         <>
-          <div className="field-label">主题 / 关键词(AI 自动生成文案 + 标签 · 留空用默认)</div>
+          <div className="field-label">主题 / 关键词 · 默认类型(AI 据此生成文案 + 标签 · 每个文件下方可单独改)</div>
           <textarea
             className="text-input"
             style={{ width: '100%', minHeight: 64, resize: 'vertical', marginBottom: 20 }}
-            placeholder="例如:健身日常 / 海边度假 …… AI 会据此生成吸引人的文案和话题标签"
+            placeholder="填类型让 AI 写得更准:自慰 / 打飞机 → 自慰向文案;性爱 / 操 → 性爱向文案。也可加细节如「肌肉猛男 性爱」。批量混合类型时,下方每个文件能单独选类型"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
           />
@@ -290,6 +297,18 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
                     <div className="fsize">{fmtSize(it.size)}</div>
                   </div>
                   <div className="qstatus">
+                    {withCaption && (
+                      <select
+                        className="type-select"
+                        value={it.type || ''}
+                        onChange={(e) => setType(it.uid, e.target.value)}
+                        title="该视频类型 · 影响 AI 文案与标签"
+                      >
+                        <option value="">类型:跟随上方</option>
+                        <option value="自慰">自慰 / 打飞机</option>
+                        <option value="性爱">性爱</option>
+                      </select>
+                    )}
                     <span className="muted">待上传</span>
                     <button className="qdel" onClick={() => removeItem(it.uid)} title="移除">×</button>
                   </div>
