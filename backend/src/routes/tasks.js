@@ -136,8 +136,9 @@ async function processTask(id, originalPath, topic) {
           await processVideo({
             input: originalPath, output: out, watermark: wm || undefined,
             wmPosition: process.env.WM_POSITION || 'tr',
-            wmWidth: Number(process.env.WM_WIDTH) || 150,
+            wmWidth: Number(process.env.WM_WIDTH) || 200,
             wmOpacity: Number(process.env.WM_OPACITY) || 0.9,
+            wmMargin: Number(process.env.WM_MARGIN) || 10,
             preset: process.env.WM_PRESET || 'veryfast', // VPS CPU 够强,用压缩更优的档
             maxHeight, crf,
           });

@@ -8,13 +8,13 @@ const FFMPEG = ffmpegStatic || 'ffmpeg';
 export const COVER_W = 750;
 export const COVER_H = 422;
 
-// 水印位置 → overlay 坐标(留 20px 边距)
-const WM_POS = {
-  br: 'W-w-20:H-h-20', // 右下(默认)
-  bl: '20:H-h-20',     // 左下
-  tr: 'W-w-20:20',     // 右上
-  tl: '20:20',         // 左上
-};
+// 水印位置 → overlay 坐标(m=距边缘的边距 px,越小越贴角)
+const wmCoord = (pos, m) => ({
+  br: `W-w-${m}:H-h-${m}`, // 右下(默认)
+  bl: `${m}:H-h-${m}`,     // 左下
+  tr: `W-w-${m}:${m}`,     // 右上
+  tl: `${m}:${m}`,         // 左上
+}[pos] || `W-w-${m}:H-h-${m}`);
 
 function run(args) {
   return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ function run(args) {
 // wmWidth 水印宽度(px);wmOpacity 不透明度(0~1)
 // preset:编码速度档位。Render 免费套餐 CPU 极弱,自动发布走 'ultrafast' 才跑得完。
 // maxHeight:>0 时把视频按比例缩到「最高这么多像素高」(只缩不放),大幅降低编码量和体积。
-export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br', wmWidth = 160, wmOpacity = 0.65, preset = 'veryfast', maxHeight = 0, crf = 0 }) {
+export async function processVideo({ input, output, start, end, watermark, wmPosition = 'br', wmWidth = 160, wmOpacity = 0.65, wmMargin = 20, preset = 'veryfast', maxHeight = 0, crf = 0 }) {
   const args = ['-y'];
   if (start) args.push('-ss', String(start));
   if (end) args.push('-to', String(end));
@@ -45,7 +45,7 @@ export async function processVideo({ input, output, start, end, watermark, wmPos
 
   if (watermark) {
     args.push('-i', watermark);
-    const pos = WM_POS[wmPosition] || WM_POS.br;
+    const pos = wmCoord(wmPosition, wmMargin);
     const base = downscale ? `[0]${downscale}[v];` : '';
     const vin = downscale ? '[v]' : '[0]';
     // 水印缩放到指定宽度、指定不透明度,叠加到指定角
