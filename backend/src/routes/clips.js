@@ -81,7 +81,7 @@ router.post('/process', upload.fields([
     // 有裁剪时间 / 水印 / 裁边 / 识别到要模糊的文字 → 都需要产出新视频
     const needVideo = start || end || watermark || needCrop || blurBoxes.length;
     if (needVideo) {
-      await processVideo({ input, output: trimmedPath, start, end, watermark, wmIsVideo, wmPosition, cropTop, cropBottom, cropLeft, cropRight, blurBoxes });
+      await processVideo({ input, output: trimmedPath, start, end, watermark, wmIsVideo, wmPosition, cropTop, cropBottom, cropLeft, cropRight, blurBoxes, preset: 'ultrafast', crf: 23 });
       result.video = `/files/clips/${trimmedName}`;
     }
 
