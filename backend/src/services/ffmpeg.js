@@ -92,24 +92,30 @@ export async function processVideo({ input, output, start, end, watermark, wmIsV
     const aa = wmOpacity == null ? (wmIsVideo ? 1 : 0.65) : wmOpacity;
     if (wmIsVideo) args.push('-stream_loop', '-1'); // 动态水印无限循环
     args.push('-i', watermark);
-    // 默认按水印原图大小叠加(用户自己设计的尺寸),仅当超过视频 60% 宽时才缩小;wmWidth>0 时用固定像素
+    // 自动裁掉静态水印四周的透明边,让 logo 本身紧贴角落(动态水印不裁,避免裁掉动画部分)
+    let wmCropPrefix = '', trimmedW = 0;
+    if (!wmIsVideo) {
+      const box = await detectAlphaCropBox(watermark);
+      if (box && box.w > 0 && box.h > 0) {
+        wmCropPrefix = `crop=${box.w}:${box.h}:${box.x}:${box.y},`;
+        trimmedW = box.w;
+      }
+    }
+    // 水印宽度:夹在视频宽度的 25%~45%(默认取裁掉透明边后的 logo 宽度);wmWidth>0 时用固定像素
     let wmW;
     if (wmWidth > 0) {
       wmW = wmWidth;
+    } else if (W) {
+      const nativeW = trimmedW || (await probeResolution(watermark)).w || Math.round(W * 0.3);
+      wmW = even(Math.min(Math.max(nativeW, Math.round(W * 0.25)), Math.round(W * 0.45)));
     } else {
-      const { w: nativeW } = await probeResolution(watermark);
-      if (nativeW > 0) {
-        const cap = W ? Math.round(W * 0.6) : nativeW;
-        wmW = even(Math.min(nativeW, cap));
-      } else {
-        wmW = W ? even(W * wmScale) : 200; // 探测失败时退回按比例
-      }
+      wmW = trimmedW || 200;
     }
-    // 边距同样按比例,保证各分辨率下都紧贴角落
+    // 边距按比例,保证各分辨率下都紧贴角落
     const margin = wmMargin > 0 ? wmMargin : (W ? Math.max(10, Math.round(W * 0.018)) : 18);
     const pos = wmCoord(wmPosition, margin);
     const shortest = wmIsVideo ? ':shortest=1' : ''; // 主视频结束即收尾,避免无限循环
-    parts.push(`[1]format=rgba,colorchannelmixer=aa=${aa},scale=${wmW}:-1[wm]`);
+    parts.push(`[1]${wmCropPrefix}format=rgba,colorchannelmixer=aa=${aa},scale=${wmW}:-1[wm]`);
     parts.push(`${cur}[wm]overlay=${pos}${shortest}[outv]`);
     cur = '[outv]';
     mapArgs = ['-map', '[outv]', '-map', '0:a?']; // 取叠加后画面 + 主视频音轨(水印自带音轨忽略)
@@ -125,6 +131,24 @@ export async function processVideo({ input, output, start, end, watermark, wmIsV
   if (crf > 0) args.push('-crf', String(crf)); // 质量/体积控制:越大越小,18~28 常用,23 接近视觉无损
   args.push('-c:a', 'aac', '-movflags', '+faststart', output);
   await run(args);
+}
+
+// 检测图片里「非透明 logo」的包围盒(裁掉四周透明边距用)。返回 {w,h,x,y} 或 null。
+// 思路:alphaextract 把 alpha 通道抽成灰度(不透明=白),cropdetect 找出非黑区域的边界框。
+export function detectAlphaCropBox(input) {
+  return new Promise((resolve) => {
+    const proc = spawn(FFMPEG, ['-loop', '1', '-i', input,
+      '-vf', 'alphaextract,cropdetect=limit=0:round=2', '-frames:v', '4', '-f', 'null', '-']);
+    let stderr = '';
+    proc.stderr.on('data', (d) => (stderr += d.toString()));
+    proc.on('error', () => resolve(null));
+    proc.on('close', () => {
+      const matches = [...stderr.matchAll(/crop=(\d+):(\d+):(\d+):(\d+)/g)];
+      if (!matches.length) return resolve(null);
+      const m = matches[matches.length - 1];
+      resolve({ w: +m[1], h: +m[2], x: +m[3], y: +m[4] });
+    });
+  });
 }
 
 // 读取视频分辨率(宽×高)。和 probeDuration 一样从 ffmpeg -i 的 stderr 里解析。
