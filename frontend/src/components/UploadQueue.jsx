@@ -88,6 +88,15 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
   const setKeyword = (uid, keyword) => {
     setItems((prev) => prev.map((it) => (it.uid === uid ? { ...it, keyword } : it)));
   };
+  // 快填:把热门词追加到该文件关键词后面(已存在则不重复),可叠加如「体育生 性爱」
+  const addKeyword = (uid, word) => {
+    setItems((prev) => prev.map((it) => {
+      if (it.uid !== uid) return it;
+      const parts = (it.keyword || '').split(/\s+/).filter(Boolean);
+      if (!parts.includes(word)) parts.push(word);
+      return { ...it, keyword: parts.join(' ') };
+    }));
+  };
 
   const cancelItem = (uid) => {
     const ac = aborts.current[uid];
@@ -313,13 +322,21 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
                       <select
                         className="type-select"
                         value=""
-                        onChange={(e) => { if (e.target.value) setKeyword(it.uid, e.target.value); }}
-                        title="快速填类型(会写进左边关键词框)"
+                        onChange={(e) => { if (e.target.value) addKeyword(it.uid, e.target.value); }}
+                        title="快填热门词(追加到左边关键词框,可叠加如「体育生 性爱」)"
                         style={{ padding: '5px 4px', border: '1px solid #d8dbe8', borderRadius: 6, fontSize: 13 }}
                       >
-                        <option value="">快填…</option>
-                        <option value="自慰">自慰 / 打飞机</option>
-                        <option value="性爱">性爱</option>
+                        <option value="">+ 快填</option>
+                        <optgroup label="人设">
+                          <option value="小鲜肉">小鲜肉</option>
+                          <option value="体育生">体育生</option>
+                          <option value="男大学生">男大学生</option>
+                          <option value="伪娘">伪娘</option>
+                        </optgroup>
+                        <optgroup label="类型">
+                          <option value="自慰">自慰 / 打飞机</option>
+                          <option value="性爱">性爱</option>
+                        </optgroup>
                       </select>
                     </div>
                   )}
