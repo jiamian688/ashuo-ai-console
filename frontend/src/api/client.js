@@ -74,6 +74,8 @@ export const api = {
   deleteTodo: (id) => request(`/todos/${id}`, { method: 'DELETE' }),
   genCopy: (keyword, count) =>
     request('/ai/copy', { method: 'POST', body: JSON.stringify({ keyword, count }) }),
+  organizeMeeting: (raw) =>
+    request('/ai/meeting-notes', { method: 'POST', body: JSON.stringify({ raw }) }),
   telegramStatus: () => request('/telegram/status'),
   telegramTest: () => request('/telegram/test', { method: 'POST', body: JSON.stringify({ sendPing: true }) }),
   processClip: (formData) => request('/clips/process', { method: 'POST', body: formData }),

@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Community from './pages/Community.jsx';
 import SocialMedia from './pages/SocialMedia.jsx';
 import ClipManagement from './pages/ClipManagement.jsx';
+import MeetingRoom from './pages/MeetingRoom.jsx';
 import { getToken } from './api/client.js';
 
 function useTheme() {
@@ -43,6 +44,7 @@ export default function App() {
       <Route path="/community" element={guard(<Community />, '社群管理')} />
       <Route path="/social" element={guard(<SocialMedia />, '社媒管理')} />
       <Route path="/clips" element={guard(<ClipManagement />, '剪辑管理')} />
+      <Route path="/meeting" element={guard(<MeetingRoom />, 'Agent 会议室')} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

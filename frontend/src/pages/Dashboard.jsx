@@ -6,7 +6,7 @@ const TOOLS = [
   { key: 'clips', icon: '🖼', tint: '#eef0fb', color: '#6c5ce7', title: '剪辑管理', desc: '视频剪辑和封面图生成', to: '/clips' },
   { key: 'community', icon: '💬', tint: '#e7f6ec', color: '#16a34a', title: '社群管理', desc: '管理 TG 社群内容发布', to: '/community' },
   { key: 'social', icon: '➤', tint: '#e8effe', color: '#3b6fe0', title: '社媒管理', desc: 'AI 推特文案生成器 · 关键词→文案', to: '/social' },
-  { key: 'meeting', icon: '🎥', tint: '#f3eafe', color: '#8b5cf6', title: 'Agent 会议室', desc: '实时协作 · 视频会议 · AI 跟会记录', external: true },
+  { key: 'meeting', icon: '🎥', tint: '#f3eafe', color: '#8b5cf6', title: 'Agent 会议室', desc: 'Fathom 会议 · AI 跟会记录 · 纪要导出 Word/PDF', to: '/meeting' },
 ];
 
 function greeting() {
