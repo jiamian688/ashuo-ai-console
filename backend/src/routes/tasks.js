@@ -118,7 +118,7 @@ async function processTask(id, originalPath, topic) {
       captionMode = r.mode; // claude/grok=真用了AI / template=没配key或降级
       usage = r.usage || usage;
     } catch (e) {
-      const fallback = buildCaption((topic || '').trim(), process.env.DEFAULT_TAGS || '#每日更新 #精彩视频');
+      const fallback = buildCaption((topic || '').trim(), process.env.DEFAULT_TAGS || '#男同 #Gay #同志 #每日更新');
       caption = fallback.text;
       captionHtml = fallback.html;
       captionMode = 'error';

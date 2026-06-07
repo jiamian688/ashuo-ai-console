@@ -33,7 +33,7 @@ export function buildCaption(narrative, tags) {
 export async function generateChannelCaption({ topic } = {}) {
   const provider = activeProvider();
   const t = (topic || '').trim();
-  const defaultTags = (process.env.DEFAULT_TAGS || '#每日更新 #精彩视频').trim();
+  const defaultTags = (process.env.DEFAULT_TAGS || '#男同 #Gay #同志 #每日更新').trim();
 
   // 没配 AI:模板兜底(关键词当正文 + 默认标签 + 固定 CTA)
   if (!provider) {
@@ -44,13 +44,14 @@ export async function generateChannelCaption({ topic } = {}) {
 
   const kw = t
     ? `视频关键词/主题:「${t}」。`
-    : '这是一条成人向短视频,没有特别指定关键词,请自行发挥写得撩人、通用。';
+    : '这是一条男同(Gay)向短视频,没有特别指定关键词,请自行发挥写得撩人、通用。';
 
   const prompt =
-    `你是一个成人内容频道的文案写手。为一条要发到 Telegram 频道的短视频写中文引流文案。${kw}\n` +
+    `你是一个男同(Gay / 同志)成人内容频道的文案写手,频道受众是喜欢男男内容的成年男性。` +
+    `为一条要发到 Telegram 频道的短视频写中文引流文案。${kw}\n` +
     `按下面两部分输出,两部分之间用单独一行「===」分隔:\n` +
-    `第一部分:一段有画面感、撩人、露骨的中文叙述(2~4 句,可用 emoji),目的是吸引人点击观看完整视频。\n` +
-    `第二部分:3~5 个与内容高度相关的中文话题标签,以 # 开头,用空格分隔,全部放在同一行。\n` +
+    `第一部分:一段有画面感、撩人、露骨的中文叙述(2~4 句,可用 emoji),围绕男男情欲/肌肉猛男/兄弟基情等男同视角,目的是吸引人点击观看完整视频。\n` +
+    `第二部分:3~5 个与男同内容高度相关的中文话题标签(如 #男同 #Gay #肌肉猛男 之类),以 # 开头,用空格分隔,全部放在同一行。\n` +
     `只输出这两部分和中间的「===」,不要任何解释、不要引号、不要写「第一部分」之类的字样。`;
 
   const { text: raw, usage } = await chatWithUsage({ prompt, maxTokens: 500 });
