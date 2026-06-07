@@ -41,7 +41,7 @@ export async function testTelegram({ sendPing = false } = {}) {
 }
 
 // 把视频发到 Telegram。>50MB 用 sendDocument(bot API 上传上限),否则 sendVideo。
-export async function postVideoToTelegram({ filePath, caption }) {
+export async function postVideoToTelegram({ filePath, caption, parseMode }) {
   const { token, chatId } = creds();
   if (!token || !chatId) {
     return { skipped: true, reason: 'TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 未配置,跳过真实发布' };
@@ -57,6 +57,7 @@ export async function postVideoToTelegram({ filePath, caption }) {
   const form = new FormData();
   form.append('chat_id', chatId);
   if (caption) form.append('caption', caption);
+  if (caption && parseMode) form.append('parse_mode', parseMode);
   const buffer = fs.readFileSync(filePath);
   form.append(field, new Blob([buffer]), path.basename(filePath));
 
@@ -70,7 +71,7 @@ export async function postVideoToTelegram({ filePath, caption }) {
 
 // 把「视频 + 多张图片 + 文案」作为一组(media group)一条消息发出。
 // 文案挂在第一个媒体上(视频优先)。photoPaths 为图片路径数组。
-export async function postMediaGroupToTelegram({ videoPath, photoPaths = [], caption }) {
+export async function postMediaGroupToTelegram({ videoPath, photoPaths = [], caption, parseMode }) {
   const { token, chatId } = creds();
   if (!token || !chatId) {
     return { skipped: true, reason: 'TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 未配置,跳过真实发布' };
@@ -84,7 +85,10 @@ export async function postMediaGroupToTelegram({ videoPath, photoPaths = [], cap
   const attach = (filePath, type) => {
     const field = `file${idx++}`;
     const item = { type, media: `attach://${field}` };
-    if (media.length === 0 && caption) item.caption = caption; // 文案放第一个媒体
+    if (media.length === 0 && caption) { // 文案放第一个媒体
+      item.caption = caption;
+      if (parseMode) item.parse_mode = parseMode;
+    }
     if (type === 'video') item.supports_streaming = true;
     media.push(item);
     form.append(field, new Blob([fs.readFileSync(filePath)]), path.basename(filePath));

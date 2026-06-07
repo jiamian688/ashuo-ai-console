@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import db from '../db.js';
 import { postVideoToTelegram, postMediaGroupToTelegram } from '../services/telegram.js';
 import { processVideo, extractHighlights } from '../services/ffmpeg.js';
-import { generateChannelCaption } from '../services/ai.js';
+import { generateChannelCaption, buildCaption } from '../services/ai.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadDir = path.join(__dirname, '..', '..', 'uploads');
@@ -99,15 +99,19 @@ async function processTask(id, originalPath, topic) {
   try {
     const size = fs.existsSync(originalPath) ? fs.statSync(originalPath).size : 0;
 
-    // 1) 文案 + 标签(AI;失败则退回用户填的主题)
+    // 1) 文案 + 标签(AI;失败则退回用户填的主题,仍套上 CTA + 默认标签)
     let caption = '';
+    let captionHtml = null;
     let captionMode = 'template';
     try {
       const r = await generateChannelCaption({ topic });
       caption = r.caption;
-      captionMode = r.mode; // claude=真用了AI / template=没配key或降级
+      captionHtml = r.captionHtml;
+      captionMode = r.mode; // claude/grok=真用了AI / template=没配key或降级
     } catch (e) {
-      caption = (topic || '').trim();
+      const fallback = buildCaption((topic || '').trim(), process.env.DEFAULT_TAGS || '#每日更新 #精彩视频');
+      caption = fallback.text;
+      captionHtml = fallback.html;
       captionMode = 'error';
       console.error(`[task ${id}] 文案生成失败,改用原文:`, e.message);
     }
@@ -174,10 +178,12 @@ async function processTask(id, originalPath, topic) {
 
     // 4) 发布:有图 → 视频+图 一组发;没截到图 → 退化为单条视频
     let result;
+    const parseMode = captionHtml ? 'HTML' : undefined;
+    const tgCaption = captionHtml || caption; // 配了 PROMO_LINK 就发带链接的 HTML 版
     if (photos.length >= 1) {
-      result = await postMediaGroupToTelegram({ videoPath: videoForPost, photoPaths: photos, caption });
+      result = await postMediaGroupToTelegram({ videoPath: videoForPost, photoPaths: photos, caption: tgCaption, parseMode });
     } else {
-      result = await postVideoToTelegram({ filePath: videoForPost, caption });
+      result = await postVideoToTelegram({ filePath: videoForPost, caption: tgCaption, parseMode });
     }
     if (result?.skipped) console.log(`[task ${id}] ${result.reason}`);
 
