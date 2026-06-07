@@ -40,7 +40,7 @@ function run(args) {
 // blurBoxes:[{x,y,w,h}] 像素矩形数组(基于原始分辨率),逐个高斯模糊,遮住 OCR 识别出的文字/水印。
 // preset:编码速度档位。Render 免费套餐 CPU 极弱,自动发布走 'ultrafast' 才跑得完。
 // maxHeight:>0 时把视频按比例缩到「最高这么多像素高」(只缩不放),大幅降低编码量和体积。
-export async function processVideo({ input, output, start, end, watermark, wmIsVideo = false, wmPosition = 'br', wmWidth = 160, wmOpacity = null, wmMargin = 20, cropTop = 0, cropBottom = 0, cropLeft = 0, cropRight = 0, blurBoxes = [], preset = 'veryfast', maxHeight = 0, crf = 0 }) {
+export async function processVideo({ input, output, start, end, watermark, wmIsVideo = false, wmPosition = 'br', wmWidth = 220, wmOpacity = null, wmMargin = 20, cropTop = 0, cropBottom = 0, cropLeft = 0, cropRight = 0, blurBoxes = [], preset = 'veryfast', maxHeight = 0, crf = 0 }) {
   const args = ['-y'];
   if (start) args.push('-ss', String(start));
   if (end) args.push('-to', String(end));
