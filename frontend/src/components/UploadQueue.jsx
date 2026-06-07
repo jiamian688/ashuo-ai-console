@@ -1,21 +1,70 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 
 let _uid = 0;
+// 本地上传可达 200MB/s,真实进度会一闪而过。让进度条至少花这么久填满,确保肉眼可见。
+const MIN_UPLOAD_MS = 1500;
 
 function fmtSize(bytes) {
   if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
+// 进度条里的紧凑写法:276M / 909M
+function fmtMB(bytes) {
+  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(0)}M`;
+  return `${Math.max(1, Math.round(bytes / 1024))}K`;
+}
+// 速度:bytes/s -> 1.00MB/s 或 320KB/s
+function fmtSpeed(bps) {
+  if (!bps || bps < 0) return '0KB/s';
+  if (bps >= 1048576) return `${(bps / 1048576).toFixed(2)}MB/s`;
+  return `${Math.max(1, Math.round(bps / 1024))}KB/s`;
+}
+function pctOf(it) {
+  if (it.total) return (it.loaded / it.total) * 100;
+  return it.progress || 0;
+}
+// 大绿条里居中显示的百分比 / 流量 / 颜色
+function bigPct(it) {
+  if (it.status === 'processing') return 100;
+  if (it.status === 'posted') return 100;
+  if (it.status === 'error' || it.status === 'canceled') return pctOf(it);
+  return pctOf(it);
+}
+function bigColor(it) {
+  if (it.status === 'error') return 'var(--red, #e5484d)';
+  if (it.status === 'canceled') return 'var(--muted, #888)';
+  return 'var(--green)';
+}
+function bigLabel(it) {
+  if (it.status === 'uploading') return `${bigPct(it).toFixed(0)}%`;
+  if (it.status === 'processing') return '发布中…';
+  if (it.status === 'posted') return '已发布';
+  if (it.status === 'canceled') return '已取消';
+  if (it.status === 'error') return '失败';
+  return '';
+}
 
-// 可复用的「多选 → 待上传队列 → 清空/开始上传 → 每个文件显示任务号」上传组件
-// withCaption: 是否显示配文输入框(社群管理用);onUploaded: 每上传成功一个回调一次(刷新列表/统计)
-export default function UploadQueue({ withCaption = false, onUploaded }) {
-  const [items, setItems] = useState([]); // {uid, file, name, size, status:'pending'|'uploading'|'done'|'error', taskId, error}
+// 可复用的「多选 → 待上传队列 → 每个文件独立富进度条 → 发布跟踪」上传组件
+// withCaption: 是否显示配文输入框(社群管理用);onUploaded: 每上传成功一个回调一次
+// onViewTask(taskId): 点「查看任务」时回调(社群页用来打开详情弹窗);不传则跳转 /community
+export default function UploadQueue({ withCaption = false, onUploaded, onViewTask }) {
+  const navigate = useNavigate();
+  const [items, setItems] = useState([]); // {uid,file,name,size,status,taskId,progress,loaded,total,speed,error}
   const [drag, setDrag] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [caption, setCaption] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [concurrency, setConcurrency] = useState(
+    () => Number(localStorage.getItem('yule_upload_concurrency')) || 2
+  );
   const inputRef = useRef(null);
+  const aborts = useRef({}); // uid -> AbortController(用于单文件取消)
+
+  useEffect(() => {
+    localStorage.setItem('yule_upload_concurrency', String(concurrency));
+  }, [concurrency]);
 
   const addFiles = (fileList) => {
     const incoming = Array.from(fileList || []);
@@ -29,35 +78,144 @@ export default function UploadQueue({ withCaption = false, onUploaded }) {
     });
   };
 
+  // 正在上传中的文件不能直接移除(请用取消按钮);其余状态随时可移除
   const removeItem = (uid) => {
-    if (uploading) return;
-    setItems((prev) => prev.filter((it) => it.uid !== uid));
+    setItems((prev) => prev.filter((it) => it.uid !== uid || it.status === 'uploading'));
   };
   const clearAll = () => { if (!uploading) setItems([]); };
+
+  const cancelItem = (uid) => {
+    const ac = aborts.current[uid];
+    if (ac) ac.abort();
+  };
+
+  // 失败 / 已取消的文件,重新放回上传(file 对象仍在内存里,可直接重传)
+  const retryItem = async (uid) => {
+    const it = items.find((x) => x.uid === uid);
+    if (!it || !it.file) return;
+    setUploading(true);
+    await uploadOne(it);
+    setUploading(false);
+  };
+
+  // 查看任务:社群页传 onViewTask 打开详情弹窗;否则跳到社群页
+  const viewTask = (taskId) => {
+    if (onViewTask) onViewTask(taskId);
+    else navigate('/community');
+  };
 
   const pendingCount = items.filter((it) => it.status === 'pending').length;
   const totalBytes = items.reduce((s, it) => s + it.size, 0);
 
-  const startUpload = async () => {
-    const pend = items.filter((it) => it.status === 'pending');
-    if (!pend.length || uploading) return;
-    setUploading(true);
-    for (const it of pend) {
-      setItems((prev) => prev.map((x) => (x.uid === it.uid ? { ...x, status: 'uploading' } : x)));
-      try {
-        const form = new FormData();
-        form.append('files', it.file);
-        if (withCaption && caption.trim()) form.append('caption', caption.trim());
-        const r = await api.uploadTasks(form);
-        const taskId = r?.created?.[0]?.id;
-        setItems((prev) => prev.map((x) => (x.uid === it.uid ? { ...x, status: 'done', taskId } : x)));
-        onUploaded && onUploaded();
-      } catch (err) {
+  const uploadOne = async (it) => {
+    const ac = new AbortController();
+    aborts.current[it.uid] = ac;
+    const startedAt = Date.now();
+    // real:XHR 回报的真实进度;ticker 据此算出「显示进度」(被 MIN_UPLOAD_MS 限速,保证可见)
+    const real = { pct: 0, loaded: 0, total: it.size };
+    let lastLoaded = 0;
+    let lastTime = startedAt;
+    let shownSpeed = 0;
+
+    setItems((prev) => prev.map((x) =>
+      x.uid === it.uid ? { ...x, status: 'uploading', progress: 0, loaded: 0, total: it.size, speed: 0 } : x));
+
+    const ticker = setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const timePct = Math.min(100, (elapsed / MIN_UPLOAD_MS) * 100);
+      // 显示进度 = 真实进度和「时间允许的进度」取较小值:
+      //   秒传时被时间限速,慢传时跟随真实进度。
+      const pct = Math.min(real.pct, timePct);
+      const total = real.total || it.size;
+      const loaded = Math.round((total * pct) / 100);
+      const now = Date.now();
+      const dt = (now - lastTime) / 1000;
+      if (dt > 0) { shownSpeed = (loaded - lastLoaded) / dt; lastLoaded = loaded; lastTime = now; }
+      setItems((prev) => prev.map((x) =>
+        x.uid === it.uid && x.status === 'uploading'
+          ? { ...x, progress: pct, loaded, total, speed: shownSpeed } : x));
+    }, 80);
+
+    try {
+      const form = new FormData();
+      form.append('files', it.file);
+      if (withCaption && caption.trim()) form.append('caption', caption.trim());
+      const r = await api.uploadTasks(form, (info) => {
+        real.pct = info.percent;
+        real.loaded = info.loaded;
+        real.total = info.total;
+      }, ac.signal);
+      // 传输完成,但确保进度条至少显示满 MIN_UPLOAD_MS 再进入下一阶段
+      real.pct = 100;
+      await new Promise((res) => setTimeout(res, Math.max(0, MIN_UPLOAD_MS - (Date.now() - startedAt))));
+      clearInterval(ticker);
+      const taskId = r?.created?.[0]?.id;
+      // 传输完成 ≠ 发布完成:后端还要转码 + 截图 + 发到 TG,进入 processing 由下面轮询跟踪
+      setItems((prev) => prev.map((x) =>
+        x.uid === it.uid ? { ...x, status: 'processing', progress: 100, taskId } : x));
+      onUploaded && onUploaded();
+    } catch (err) {
+      clearInterval(ticker);
+      if (err.name === 'AbortError') {
+        setItems((prev) => prev.map((x) => (x.uid === it.uid ? { ...x, status: 'canceled' } : x)));
+      } else {
         setItems((prev) => prev.map((x) => (x.uid === it.uid ? { ...x, status: 'error', error: err.message } : x)));
       }
+    } finally {
+      delete aborts.current[it.uid];
     }
+  };
+
+  // 并发上传:用 concurrency 个 worker 从队列里取任务
+  const startUpload = async () => {
+    const queue = items.filter((it) => it.status === 'pending');
+    if (!queue.length || uploading) return;
+    setShowSettings(false);
+    setUploading(true);
+    let idx = 0;
+    const worker = async () => {
+      while (idx < queue.length) {
+        const it = queue[idx++];
+        await uploadOne(it);
+      }
+    };
+    const n = Math.max(1, Math.min(concurrency, queue.length));
+    await Promise.all(Array.from({ length: n }, () => worker()));
     setUploading(false);
   };
+
+  // 上传完成后,后端仍在转码/发布。轮询任务状态直到 posted/failed,
+  // 让用户在本地秒传的环境下也能持续看到「发布中…」反馈。
+  const watching = items
+    .filter((it) => it.status === 'processing' && it.taskId)
+    .map((it) => it.taskId)
+    .join(',');
+  useEffect(() => {
+    if (!watching) return;
+    let alive = true;
+    const tick = async () => {
+      try {
+        const tasks = await api.listTasks();
+        const byId = new Map(tasks.map((t) => [t.id, t]));
+        if (!alive) return;
+        setItems((prev) =>
+          prev.map((it) => {
+            if (it.status !== 'processing' || !it.taskId) return it;
+            const t = byId.get(it.taskId);
+            if (!t) return it;
+            if (t.status === 'posted') return { ...it, status: 'posted' };
+            if (t.status === 'failed') return { ...it, status: 'error', error: t.error || '处理失败' };
+            return it;
+          })
+        );
+      } catch {
+        /* ignore，下个周期再试 */
+      }
+    };
+    const id = setInterval(tick, 3000);
+    tick();
+    return () => { alive = false; clearInterval(id); };
+  }, [watching]);
 
   return (
     <div>
@@ -101,6 +259,20 @@ export default function UploadQueue({ withCaption = false, onUploaded }) {
               {items.length} 个文件 · 共 {fmtSize(totalBytes)} · 待上传 {pendingCount}
             </div>
             <div className="queue-actions">
+              <div className="gear-wrap">
+                <button className="icon-btn" title="上传设置" onClick={() => setShowSettings((v) => !v)}>⚙</button>
+                {showSettings && (
+                  <div className="gear-pop" onClick={(e) => e.stopPropagation()}>
+                    <div className="gear-row">
+                      <span>同时上传</span>
+                      <select value={concurrency} onChange={(e) => setConcurrency(Number(e.target.value))} disabled={uploading}>
+                        {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} 个</option>)}
+                      </select>
+                    </div>
+                    <div className="gear-hint">限速需改造为分片上传,暂未支持</div>
+                  </div>
+                )}
+              </div>
               <button className="ghost-btn" onClick={clearAll} disabled={uploading}>清空</button>
               <button className="btn-primary" onClick={startUpload} disabled={uploading || pendingCount === 0}>
                 {uploading ? '上传中…' : '开始上传'}
@@ -110,27 +282,62 @@ export default function UploadQueue({ withCaption = false, onUploaded }) {
 
           <div className="queue-list">
             {items.map((it) => (
-              <div className="queue-row" key={it.uid}>
-                <div className="qinfo">
-                  <div className="fname">{it.name}</div>
-                  <div className="fsize">{fmtSize(it.size)}</div>
+              it.status === 'pending' ? (
+                // 待上传:紧凑一行
+                <div className="queue-row" key={it.uid}>
+                  <div className="qinfo">
+                    <div className="fname">{it.name}</div>
+                    <div className="fsize">{fmtSize(it.size)}</div>
+                  </div>
+                  <div className="qstatus">
+                    <span className="muted">待上传</span>
+                    <button className="qdel" onClick={() => removeItem(it.uid)} title="移除">×</button>
+                  </div>
                 </div>
-                <div className="qstatus">
-                  {it.status === 'pending' && (
-                    <>
-                      <span className="muted">待上传</span>
-                      <button className="qdel" onClick={() => removeItem(it.uid)} title="移除">×</button>
-                    </>
-                  )}
-                  {it.status === 'uploading' && <span className="status-pill processing">上传中…</span>}
-                  {it.status === 'done' && (
-                    <span className="status-pill posted">✅ 任务 #{it.taskId ?? '—'}</span>
-                  )}
-                  {it.status === 'error' && (
-                    <span className="status-pill failed" title={it.error}>✗ 失败</span>
-                  )}
+              ) : (
+                // 上传中 / 发布中 / 已完成 / 失败:每个文件一条大进度条
+                <div className="up-card" key={it.uid}>
+                  <div className="up-card-name" title={it.name}>{it.name}</div>
+                  <div
+                    className={`up-bigbar ${it.status === 'processing' ? 'pulsing' : ''}`}
+                  >
+                    <div
+                      className={`up-bigfill ${it.status === 'uploading' || it.status === 'processing' ? 'striped' : ''}`}
+                      style={{ width: `${bigPct(it)}%`, background: bigColor(it) }}
+                    />
+                    <span className="up-bigpct">{bigLabel(it)}</span>
+                  </div>
+                  <div className="up-bigmeta">
+                    {it.status === 'uploading' && (
+                      <>
+                        <span>{fmtMB(it.loaded || 0)} / {fmtMB(it.total || it.size)}</span>
+                        <span>{fmtSpeed(it.speed)}</span>
+                      </>
+                    )}
+                    {it.status === 'processing' && <span>转码 + 截图 + 发布到频道中…</span>}
+                    {it.status === 'posted' && <span>任务 #{it.taskId ?? '—'} 已发布到频道</span>}
+                    {it.status === 'canceled' && <span>已取消上传</span>}
+                    {it.status === 'error' && <span className="up-err" title={it.error}>{it.error || '处理失败'}</span>}
+                  </div>
+                  <div className="up-actions">
+                    {it.status === 'uploading' && (
+                      <button className="up-btn" onClick={() => cancelItem(it.uid)}>✕ 取消</button>
+                    )}
+                    {it.status === 'uploading' && (
+                      <button className="up-btn" onClick={() => setShowSettings((v) => !v)}>⚙ 设置</button>
+                    )}
+                    {(it.status === 'error' || it.status === 'canceled') && (
+                      <button className="up-btn primary" onClick={() => retryItem(it.uid)} disabled={uploading}>↻ 重试</button>
+                    )}
+                    {(it.status === 'posted' || it.status === 'processing' || it.status === 'error') && (
+                      <button className="up-btn" onClick={() => viewTask(it.taskId)}>查看任务</button>
+                    )}
+                    {it.status !== 'uploading' && it.status !== 'processing' && (
+                      <button className="up-btn" onClick={() => removeItem(it.uid)}>移除</button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )
             ))}
           </div>
         </>

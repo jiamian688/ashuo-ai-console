@@ -34,7 +34,38 @@ export const api = {
     request('/auth/login', { method: 'POST', body: JSON.stringify({ password, username }) }),
   stats: () => request('/tasks/stats'),
   listTasks: () => request('/tasks'),
-  uploadTasks: (formData) => request('/tasks', { method: 'POST', body: formData }),
+  // 用 XHR 上传:fetch 无法回报上传进度,XHR 的 upload.onprogress 可以。
+  // onProgress({ percent, loaded, total }) 会在传输过程中被多次回调。
+  // signal: 可选 AbortSignal,abort() 时取消上传(reject 一个 name='AbortError' 的错误)。
+  uploadTasks: (formData, onProgress, signal) =>
+    new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${BASE}/api/tasks`);
+      const token = getToken();
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      if (signal) {
+        if (signal.aborted) { xhr.abort(); }
+        signal.addEventListener('abort', () => xhr.abort());
+      }
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress({ percent: Math.round((e.loaded / e.total) * 100), loaded: e.loaded, total: e.total });
+        }
+      };
+      xhr.onload = () => {
+        let data = {};
+        try { data = JSON.parse(xhr.responseText); } catch { /* ignore */ }
+        if (xhr.status === 401) {
+          clearToken();
+          if (location.pathname !== '/login') location.href = '/login';
+        }
+        if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+        else reject(new Error(data.error || `请求失败 (${xhr.status})`));
+      };
+      xhr.onerror = () => reject(new Error('网络错误,上传失败'));
+      xhr.onabort = () => { const err = new Error('已取消'); err.name = 'AbortError'; reject(err); };
+      xhr.send(formData);
+    }),
   listTodos: () => request('/todos'),
   addTodo: (content, bucket) =>
     request('/todos', { method: 'POST', body: JSON.stringify({ content, bucket }) }),

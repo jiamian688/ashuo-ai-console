@@ -5,8 +5,22 @@ import UploadQueue from '../components/UploadQueue.jsx';
 
 function fmtDate(s) {
   if (!s) return '—';
-  return s.replace('T', ' ').slice(0, 16);
+  // 数据库存的是 UTC 时间(SQLite datetime('now'),不带时区标记)。
+  // 补上 'Z' 当作 UTC 解析,再用浏览器本地时区显示(你的电脑设成泰国时间,就显示泰国时间)。
+  const iso = (s.includes('T') ? s : s.replace(' ', 'T'));
+  const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  if (isNaN(d.getTime())) return s;
+  return d.toLocaleString('zh-CN', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
 }
+const CAPTION_MODE_LABEL = {
+  claude: 'AI 生成(Claude) ✅',
+  grok: 'AI 生成(Grok) ✅',
+  template: '模板兜底(未配 AI 或已降级)',
+  error: 'AI 调用出错,改用了你填的原文',
+};
 function fmtDuration(sec) {
   if (sec == null) return '—';
   const m = Math.floor(sec / 60);
@@ -20,6 +34,7 @@ export default function Community() {
   const [tasks, setTasks] = useState([]);
   const [tg, setTg] = useState({ configured: false });
   const [testing, setTesting] = useState(false);
+  const [detail, setDetail] = useState(null); // 当前查看的任务
 
   const load = () => api.listTasks().then(setTasks).catch(() => {});
   useEffect(() => {
@@ -58,7 +73,14 @@ export default function Community() {
       <div className="card" style={{ marginTop: 20 }}>
         <div className="card-head">上传新任务</div>
         <div className="card-body">
-          <UploadQueue withCaption onUploaded={load} />
+          <UploadQueue
+            withCaption
+            onUploaded={load}
+            onViewTask={(id) => {
+              const t = tasks.find((x) => x.id === id);
+              if (t) setDetail(t);
+            }}
+          />
         </div>
       </div>
 
@@ -92,13 +114,43 @@ export default function Community() {
                 <td>{fmtDate(t.created_at)}</td>
                 <td>{fmtDuration(t.duration_seconds)}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <span className="link">查看 →</span>
+                  <span className="link" style={{ cursor: 'pointer' }} onClick={() => setDetail(t)}>查看 →</span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {detail && (
+        <div className="modal-overlay" onClick={() => setDetail(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              任务 #{detail.id}
+              <button className="qdel" onClick={() => setDetail(null)} title="关闭">×</button>
+            </div>
+            <div className="modal-body">
+              <div className="kv"><span>状态</span><b><span className={`status-pill ${detail.status}`}>{STATUS_LABEL[detail.status] || detail.status}</span></b></div>
+              <div className="kv"><span>文件</span><b>{detail.original_name || '—'}</b></div>
+              <div className="kv"><span>创建时间</span><b>{fmtDate(detail.created_at)}</b></div>
+              <div className="kv"><span>耗时</span><b>{fmtDuration(detail.duration_seconds)}</b></div>
+              <div className="kv"><span>文案来源</span><b>{CAPTION_MODE_LABEL[detail.caption_mode] || '—'}</b></div>
+              {detail.caption && (
+                <div className="kv-block">
+                  <span>发布的文案</span>
+                  <pre className="caption-box">{detail.caption}</pre>
+                </div>
+              )}
+              {detail.status === 'failed' && (
+                <div className="kv-block">
+                  <span>失败原因</span>
+                  <pre className="error-box">{detail.error || '未记录具体原因'}</pre>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

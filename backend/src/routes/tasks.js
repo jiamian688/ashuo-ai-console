@@ -101,12 +101,18 @@ async function processTask(id, originalPath, topic) {
 
     // 1) 文案 + 标签(AI;失败则退回用户填的主题)
     let caption = '';
+    let captionMode = 'template';
     try {
-      caption = (await generateChannelCaption({ topic })).caption;
+      const r = await generateChannelCaption({ topic });
+      caption = r.caption;
+      captionMode = r.mode; // claude=真用了AI / template=没配key或降级
     } catch (e) {
       caption = (topic || '').trim();
+      captionMode = 'error';
       console.error(`[task ${id}] 文案生成失败,改用原文:`, e.message);
     }
+    // 先把文案存下来,失败也能看到当时生成了什么
+    db.prepare(`UPDATE tasks SET caption=?, caption_mode=? WHERE id=?`).run(caption, captionMode, id);
 
     // 2) 加固定 logo 水印 + 压缩到 50MB 内
     //    关键:原视频即使超过 50MB 也不再直接拒绝,而是靠转码压缩。

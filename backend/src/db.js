@@ -29,6 +29,15 @@ db.exec(`
   );
 `);
 
+// 轻量迁移:给老库补上后加的列(CREATE TABLE IF NOT EXISTS 不会给已存在的表加列)
+for (const [col, def] of [
+  ['caption', 'TEXT'],         // 实际发到频道的文案
+  ['caption_mode', 'TEXT'],    // claude=AI生成 / template=模板兜底
+]) {
+  try { db.exec(`ALTER TABLE tasks ADD COLUMN ${col} ${def}`); }
+  catch (e) { /* 已存在则忽略 */ }
+}
+
 // 首次启动时塞一些演示数据,让界面不空
 const count = db.prepare('SELECT COUNT(*) AS n FROM tasks').get().n;
 if (count === 0) {
