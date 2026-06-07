@@ -33,6 +33,8 @@ db.exec(`
 for (const [col, def] of [
   ['caption', 'TEXT'],         // 实际发到频道的文案
   ['caption_mode', 'TEXT'],    // claude=AI生成 / template=模板兜底
+  ['video_path', 'TEXT'],      // 处理后视频的 /files 访问路径(供详情页保存)
+  ['screenshots', 'TEXT'],     // 截图 /files 路径的 JSON 数组
 ]) {
   try { db.exec(`ALTER TABLE tasks ADD COLUMN ${col} ${def}`); }
   catch (e) { /* 已存在则忽略 */ }

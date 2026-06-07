@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { api, fileUrl } from '../api/client.js';
 import UploadQueue from '../components/UploadQueue.jsx';
 
 function fmtDate(s) {
@@ -35,6 +35,41 @@ export default function Community() {
   const [tg, setTg] = useState({ configured: false });
   const [testing, setTesting] = useState(false);
   const [detail, setDetail] = useState(null); // 当前查看的任务
+  const [copied, setCopied] = useState(false);
+
+  const copyCaption = async (text) => {
+    const s = text || '';
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(s);
+      } else {
+        throw new Error('clipboard api unavailable');
+      }
+    } catch {
+      // 兜底:非安全上下文 / 无剪贴板权限时,用临时 textarea + execCommand
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = s;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch {
+        alert('复制失败,请手动选中复制');
+        return;
+      }
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  // screenshots 在库里存的是 JSON 字符串,转成数组
+  const shotsOf = (t) => {
+    if (!t?.screenshots) return [];
+    try { return JSON.parse(t.screenshots) || []; } catch { return []; }
+  };
 
   const load = () => api.listTasks().then(setTasks).catch(() => {});
   useEffect(() => {
@@ -137,8 +172,41 @@ export default function Community() {
               <div className="kv"><span>文案来源</span><b>{CAPTION_MODE_LABEL[detail.caption_mode] || '—'}</b></div>
               {detail.caption && (
                 <div className="kv-block">
-                  <span>发布的文案</span>
+                  <div className="kv-block-head">
+                    <span>发布的文案</span>
+                    <button className="mini-btn" onClick={() => copyCaption(detail.caption)}>
+                      {copied ? '已复制 ✓' : '复制文案'}
+                    </button>
+                  </div>
                   <pre className="caption-box">{detail.caption}</pre>
+                </div>
+              )}
+              {shotsOf(detail).length > 0 && (
+                <div className="kv-block">
+                  <span>截图(点图可看大图 · 保存到本地)</span>
+                  <div className="shot-grid">
+                    {shotsOf(detail).map((p, i) => (
+                      <div className="shot-cell" key={i}>
+                        <a href={fileUrl(p)} target="_blank" rel="noreferrer">
+                          <img src={fileUrl(p)} alt={`截图${i + 1}`} />
+                        </a>
+                        <a className="mini-btn" href={fileUrl(p)} download={`task-${detail.id}-shot-${i + 1}.jpg`}>
+                          保存图片 ↓
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {detail.video_path && (
+                <div className="kv-block">
+                  <div className="kv-block-head">
+                    <span>成品视频</span>
+                    <a className="mini-btn" href={fileUrl(detail.video_path)} download={`task-${detail.id}.mp4`}>
+                      保存视频 ↓
+                    </a>
+                  </div>
+                  <video className="detail-video" src={fileUrl(detail.video_path)} controls />
                 </div>
               )}
               {detail.status === 'failed' && (

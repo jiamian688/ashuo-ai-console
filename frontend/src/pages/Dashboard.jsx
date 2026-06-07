@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
-import UploadQueue from '../components/UploadQueue.jsx';
 
 const TOOLS = [
   { key: 'clips', icon: '🖼', tint: '#eef0fb', color: '#6c5ce7', title: '剪辑管理', desc: '视频剪辑和封面图生成', to: '/clips' },
@@ -90,14 +89,7 @@ export default function Dashboard() {
         <div className="stat-card"><div className="stat-icon green">👥</div><div><div className="label">X 账号活跃</div><div className="value">{stats.xAccounts}</div></div></div>
       </div>
 
-      <div className="card" style={{ marginTop: 8 }}>
-        <div className="card-head">上传新任务 <span className="muted">· 多选视频 · 发布到 TG 社群</span></div>
-        <div className="card-body">
-          <UploadQueue onUploaded={loadStats} />
-        </div>
-      </div>
-
-      <div className="section-head">
+      <div className="section-head" style={{ marginTop: 8 }}>
         <h2>工作工具</h2>
         <span className="hint">选择一个工具开始工作</span>
       </div>

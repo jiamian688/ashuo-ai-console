@@ -386,6 +386,17 @@ tbody tr:last-child td { border-bottom: none; }
 .caption-box { background: var(--surface-2); border: 1px solid var(--border); }
 .error-box { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
 
+/* 详情弹窗:文案复制 / 截图保存 / 视频保存 */
+.modal-body .kv-block-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.modal-body .kv-block-head span { margin-bottom: 0; }
+.mini-btn { display: inline-flex; align-items: center; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 7px; padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--text-soft); text-decoration: none; white-space: nowrap; }
+.mini-btn:hover { color: var(--text); border-color: var(--text-faint); }
+.shot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.shot-cell { display: flex; flex-direction: column; gap: 6px; }
+.shot-cell img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); display: block; }
+.shot-cell .mini-btn { justify-content: center; }
+.detail-video { width: 100%; max-height: 360px; border-radius: 10px; border: 1px solid var(--border); background: #000; }
+
 /* ---------- login ---------- */
 .login-wrap { min-height: 100vh; display: grid; place-items: center; background: var(--bg); }
 .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; width: 360px; box-shadow: 0 10px 40px rgba(20,20,50,0.08); }

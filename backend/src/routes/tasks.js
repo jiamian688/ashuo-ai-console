@@ -181,10 +181,32 @@ async function processTask(id, originalPath, topic) {
     }
     if (result?.skipped) console.log(`[task ${id}] ${result.reason}`);
 
+    // 5) 留存成品:把转码后的视频 + 截图 move 到 uploads/tasks/<id>/(经 /files 对外可访问),
+    //    供详情页「保存视频 / 保存图片」。move 后这些文件已不在 temps 原位,下面 finally 的清理会自动跳过。
+    //    注意:Render 免费版磁盘是临时的,重启会丢;长期可靠需接外部存储(R2/S3)。
+    let savedVideo = null;
+    const savedShots = [];
+    try {
+      const savedDir = path.join(uploadDir, 'tasks', String(id));
+      fs.mkdirSync(savedDir, { recursive: true });
+      const vExt = path.extname(videoForPost) || '.mp4';
+      const vDest = path.join(savedDir, `video${vExt}`);
+      fs.renameSync(videoForPost, vDest);
+      savedVideo = `/files/tasks/${id}/video${vExt}`;
+      for (let i = 0; i < photos.length; i++) {
+        const pExt = path.extname(photos[i]) || '.jpg';
+        const pDest = path.join(savedDir, `shot-${i + 1}${pExt}`);
+        fs.renameSync(photos[i], pDest);
+        savedShots.push(`/files/tasks/${id}/shot-${i + 1}${pExt}`);
+      }
+    } catch (e) {
+      console.error(`[task ${id}] 留存成品文件失败:`, e.message);
+    }
+
     const seconds = Math.round((Date.now() - start) / 1000);
     db.prepare(
-      `UPDATE tasks SET status='posted', posted_at=datetime('now'), duration_seconds=? WHERE id=?`
-    ).run(seconds, id);
+      `UPDATE tasks SET status='posted', posted_at=datetime('now'), duration_seconds=?, video_path=?, screenshots=? WHERE id=?`
+    ).run(seconds, savedVideo, JSON.stringify(savedShots), id);
   } catch (err) {
     const seconds = Math.round((Date.now() - start) / 1000);
     db.prepare(`UPDATE tasks SET status='failed', error=?, duration_seconds=? WHERE id=?`)
