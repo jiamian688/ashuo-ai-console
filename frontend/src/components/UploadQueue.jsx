@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
+import TagPicker from './TagPicker.jsx';
 
 let _uid = 0;
 // 本地上传可达 200MB/s,真实进度会一闪而过。让进度条至少花这么久填满,确保肉眼可见。
@@ -56,6 +57,7 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
   const [uploading, setUploading] = useState(false);
   const [caption, setCaption] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [pickerUid, setPickerUid] = useState(null); // 正在为哪个文件选分类
   const [concurrency, setConcurrency] = useState(
     () => Number(localStorage.getItem('yule_upload_concurrency')) || 2
   );
@@ -87,15 +89,6 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
   // 给单个待上传文件设它自己的关键词(一一对应:视频N → 关键词N),决定该条 AI 文案与标签
   const setKeyword = (uid, keyword) => {
     setItems((prev) => prev.map((it) => (it.uid === uid ? { ...it, keyword } : it)));
-  };
-  // 快填:把热门词追加到该文件关键词后面(已存在则不重复),可叠加如「体育生 性爱」
-  const addKeyword = (uid, word) => {
-    setItems((prev) => prev.map((it) => {
-      if (it.uid !== uid) return it;
-      const parts = (it.keyword || '').split(/\s+/).filter(Boolean);
-      if (!parts.includes(word)) parts.push(word);
-      return { ...it, keyword: parts.join(' ') };
-    }));
   };
 
   const cancelItem = (uid) => {
@@ -319,25 +312,15 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
                         placeholder={`关键词${idx + 1}(留空用上方默认)`}
                         style={{ flex: 1, minWidth: 100, padding: '5px 8px', border: '1px solid #d8dbe8', borderRadius: 6, fontSize: 13 }}
                       />
-                      <select
-                        className="type-select"
-                        value=""
-                        onChange={(e) => { if (e.target.value) addKeyword(it.uid, e.target.value); }}
-                        title="快填热门词(追加到左边关键词框,可叠加如「体育生 性爱」)"
-                        style={{ padding: '5px 4px', border: '1px solid #d8dbe8', borderRadius: 6, fontSize: 13 }}
+                      <button
+                        type="button"
+                        className="up-btn"
+                        onClick={() => setPickerUid(it.uid)}
+                        title="打开分类弹窗,多选标签"
+                        style={{ whiteSpace: 'nowrap', padding: '5px 12px', border: '1px solid #6c5ce7', color: '#6c5ce7', background: '#fff', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
                       >
-                        <option value="">+ 快填</option>
-                        <optgroup label="人设">
-                          <option value="小鲜肉">小鲜肉</option>
-                          <option value="体育生">体育生</option>
-                          <option value="男大学生">男大学生</option>
-                          <option value="伪娘">伪娘</option>
-                        </optgroup>
-                        <optgroup label="类型">
-                          <option value="自慰">自慰 / 打飞机</option>
-                          <option value="性爱">性爱</option>
-                        </optgroup>
-                      </select>
+                        选分类
+                      </button>
                     </div>
                   )}
                   <div className="qstatus">
@@ -392,6 +375,15 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
             ))}
           </div>
         </>
+      )}
+
+      {pickerUid != null && (
+        <TagPicker
+          title={`选择分类 · ${items.find((it) => it.uid === pickerUid)?.name || ''}`}
+          initial={items.find((it) => it.uid === pickerUid)?.keyword || ''}
+          onCancel={() => setPickerUid(null)}
+          onConfirm={(kw) => { setKeyword(pickerUid, kw); setPickerUid(null); }}
+        />
       )}
     </div>
   );
