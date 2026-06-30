@@ -19,11 +19,7 @@ const TOOL_LINKS = [
   { label: '剪映', sub: '配音·字幕·剪辑', url: 'https://www.capcut.cn', color: '#e17055' },
 ];
 
-const INIT_PROJECTS = [
-  { id: 1, title: 'AI重试失败剧本', date: '2026/06/26', step: 2, episodes: 1 },
-  { id: 2, title: 'Untitled', date: '2026/06/25', step: 1, episodes: 0 },
-  { id: 3, title: 'API重试失败的武侠奇谭', date: '2026/06/25', step: 3, episodes: 2 },
-];
+const INIT_PROJECTS = [];
 
 const STEP_LABELS = ['剧本', '分镜', '角色图', '视频片段', '合成', '发布'];
 
@@ -905,21 +901,32 @@ export default function ComicDrama() {
         <button onClick={() => setCreating(true)} style={{ fontSize: 13, padding: '6px 14px', borderRadius: 8, border: 'none', background: '#6c5ce7', color: '#fff', cursor: 'pointer' }}>+ 新建</button>
       </div>
 
-      {creating && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-          <input value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && createProject()} placeholder="输入漫剧标题，回车创建" autoFocus style={{ ...inputStyle, flex: 1, fontSize: 14 }} />
-          <button className="btn-primary" onClick={createProject}>创建</button>
-          <button onClick={() => setCreating(false)} style={outlineBtn}>取消</button>
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12, marginBottom: 32 }}>
-        <div onClick={() => setCreating(true)} style={{ background: 'var(--card)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: '1px dashed var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 160, transition: 'border-color .2s' }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = '#6c5ce7'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = ''}>
-          <div style={{ fontSize: 36, color: '#6c5ce7', marginBottom: 8 }}>+</div>
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>创建我的漫剧</div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12, marginBottom: 32 }}>
+        {/* 新建卡片 */}
+        {!creating ? (
+          <div onClick={() => setCreating(true)} style={{ background: 'var(--card)', borderRadius: 12, cursor: 'pointer', border: '2px dashed var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 170, transition: 'border-color .2s, background .2s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#6c5ce7'; e.currentTarget.style.background = '#6c5ce711'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.background = ''; }}>
+            <div style={{ fontSize: 40, color: '#6c5ce7', marginBottom: 8 }}>+</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#6c5ce7' }}>创建我的漫剧</div>
+          </div>
+        ) : (
+          <div style={{ background: 'var(--card)', borderRadius: 12, border: '2px solid #6c5ce7', minHeight: 170, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#6c5ce7', marginBottom: 4 }}>📝 输入漫剧标题</div>
+            <input
+              value={newTitle}
+              onChange={e => setNewTitle(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && createProject()}
+              placeholder="如：都市爱情第一集"
+              autoFocus
+              style={{ ...inputStyle, fontSize: 14 }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-primary" onClick={createProject} style={{ flex: 1 }}>创建</button>
+              <button onClick={() => { setCreating(false); setNewTitle(''); }} style={outlineBtn}>取消</button>
+            </div>
+          </div>
+        )}
         {projects.map(p => <ProjectCard key={p.id} project={p} onClick={() => setActiveProject(p)} />)}
       </div>
 
