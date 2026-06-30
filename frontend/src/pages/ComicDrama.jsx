@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 /* ─── 常量 ─── */
 const STYLES = [
@@ -25,6 +25,34 @@ const RANDOM_EXAMPLES = [
   '【霜绕竹间，温砚（男主）握柄青竹剑，剑尖轻挑竹露——他守着祖传"竹编剑法"残页，以为剑三十年。沈蔬（女主）持玫骨扇闯入，扇面"嗒"地展开，扇骨寒光...',
   '【烛火映着斑驳的神像，凌锋（男主）握柄玄铁长刀立在祠中，刀身泛着冷光——他寻《寒锋诀》五年，终于查到在叶梧手中。叶梧（女主）持双剑护在神龛前，剑柄...',
 ];
+
+/* ─── 角色库（男 / 女） ─── */
+const CHAR_LIBRARY = [
+  // 男性角色
+  { id: 'm1', gender: 'male',   name: '韩立',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=hanli&backgroundColor=b6e3f4&top=longHair&hairColor=2c1b18&facialHair=beardMedium&clothesColor=3c4f5c', placeholder: true },
+  { id: 'm2', gender: 'male',   name: '叶辰',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=yechen&backgroundColor=c0aede&top=shortHair&hairColor=2c1b18&clothesColor=65c9ff', placeholder: true },
+  { id: 'm3', gender: 'male',   name: '林枫',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=linfeng&backgroundColor=d1d4f9&top=dreads&hairColor=4a312c&clothesColor=262e33', placeholder: true },
+  { id: 'm4', gender: 'male',   name: '萧炎',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=xiaoyan&backgroundColor=ffd5dc&top=shortHair&hairColor=1c1c1c&clothesColor=929598', placeholder: true },
+  { id: 'm5', gender: 'male',   name: '陈默',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=chenmuo&backgroundColor=b6e3f4&top=shortHairShortFlat&hairColor=1c1c1c&clothesColor=3c4f5c', placeholder: true },
+  { id: 'm6', gender: 'male',   name: '温砚',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=wenyan&backgroundColor=c0aede&top=dreads01&hairColor=ffffff&clothesColor=5199e4', placeholder: true },
+  { id: 'm7', gender: 'male',   name: '凌锋',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=lingfeng&backgroundColor=d1d4f9&top=longHair&hairColor=1c1c1c&clothesColor=262e33', placeholder: true },
+  { id: 'm8', gender: 'male',   name: '慕容峰', img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=murong&backgroundColor=ffdfbf&top=shortHair&hairColor=2c1b18&clothesColor=e6e6e6', placeholder: true },
+  { id: 'm9', gender: 'male',   name: '苏念',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=sunian&backgroundColor=b6e3f4&top=dreads&hairColor=b58143&clothesColor=929598', placeholder: true },
+  { id: 'm10',gender: 'male',   name: '沈轩',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=shenxuan&backgroundColor=ffd5dc&top=shortHair&hairColor=4a312c&clothesColor=3c4f5c', placeholder: true },
+  // 女性角色
+  { id: 'f1', gender: 'female', name: '南宫婉', img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=nangong&backgroundColor=ffd5dc&top=longHairStraight&hairColor=1c1c1c&clothesColor=ff4f00', placeholder: true },
+  { id: 'f2', gender: 'female', name: '林夏',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=linxia&backgroundColor=d1d4f9&top=longHairCurvy&hairColor=1c1c1c&clothesColor=b1e2ff', placeholder: true },
+  { id: 'f3', gender: 'female', name: '沈蔬',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=shenshu&backgroundColor=b6e3f4&top=longHairBun&hairColor=2c1b18&clothesColor=929598', placeholder: true },
+  { id: 'f4', gender: 'female', name: '叶梧',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=yewu&backgroundColor=c0aede&top=longHairStraight2&hairColor=4a312c&clothesColor=e6e6e6', placeholder: true },
+  { id: 'f5', gender: 'female', name: '林清雪', img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=linqingxue&backgroundColor=ffdfbf&top=longHairBob&hairColor=1c1c1c&clothesColor=ffffff', placeholder: true },
+  { id: 'f6', gender: 'female', name: '苏瑾',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=sujin&backgroundColor=ffd5dc&top=longHairCurly&hairColor=2c1b18&clothesColor=ff4f00', placeholder: true },
+  { id: 'f7', gender: 'female', name: '慕雪',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=muxue&backgroundColor=d1d4f9&top=longHairStraight&hairColor=1c1c1c&clothesColor=c9c9c9', placeholder: true },
+  { id: 'f8', gender: 'female', name: '叶倾',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=yeqing&backgroundColor=b6e3f4&top=longHairBun&hairColor=b58143&clothesColor=5199e4', placeholder: true },
+  { id: 'f9', gender: 'female', name: '冷冰',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=lengbing&backgroundColor=c0aede&top=longHairBob&hairColor=1c1c1c&clothesColor=262e33', placeholder: true },
+  { id: 'f10',gender: 'female', name: '宫九',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=gongjiu&backgroundColor=ffdfbf&top=longHairCurvy&hairColor=2c1b18&clothesColor=929598', placeholder: true },
+];
+
+const EMPTY_CHAR = { id: null, name: '', gender: 'female', age: '', identity: '', height: '', weight: '', eyeColor: '', hairColor: '', desc: '', traits: '', img: null };
 
 const TOOL_LINKS = [
   { label: 'Leonardo AI', sub: '角色图生成', url: 'https://leonardo.ai', color: '#6c5ce7' },
@@ -164,17 +192,20 @@ function ProjectWorkspace({ project, onBack }) {
   const [selectedTags, setSelectedTags] = useState([]);
   const [boards, setBoards] = useState([]);
   const [parsing, setParsing] = useState(false);
-  const [charA, setCharA] = useState('');
-  const [charB, setCharB] = useState('');
-  const [charADesc, setCharADesc] = useState('');
-  const [charBDesc, setCharBDesc] = useState('');
+  const [chars, setChars] = useState([{ ...EMPTY_CHAR }, { ...EMPTY_CHAR }]); // slot 0 = A, slot 1 = B
+  const [activeSlot, setActiveSlot] = useState(0);
+  const [libFilter, setLibFilter] = useState('all'); // all | male | female
+  const [customChars, setCustomChars] = useState([]);
+  const uploadRef = useRef(null);
   const [generating, setGenerating] = useState(false);
   const [loadingScript, setLoadingScript] = useState(false);
 
   const toggleTag = (tag) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
 
-  const buildAiPrompt = () =>
-    `请为我写一段漫剧剧本，风格：${selectedStyle || '都市爱情'}，场景元素：${selectedTags.join('、') || '随机'}。\n格式：【场景描述】\n角色名（动作）：台词\n共10-14句对白，结尾留悬念。`;
+  const buildAiPrompt = () => {
+    const charNames = chars.filter(c => c.name).map(c => c.name).join('、');
+    return `请为我写一段漫剧剧本，风格：${selectedStyle || '都市爱情'}，场景元素：${selectedTags.join('、') || '随机'}。${charNames ? `主要角色：${charNames}。` : ''}\n格式：【场景描述】\n角色名（动作）：台词\n共10-14句对白，结尾留悬念。`;
+  };
 
   const generateAiScript = async () => {
     setLoadingScript(true); setScript('');
@@ -327,57 +358,115 @@ function ProjectWorkspace({ project, onBack }) {
         </div>
       )}
 
-      {/* ══ Step 1：角色 + 分镜确认 ══ */}
-      {step === 1 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20 }}>
-          {/* 左：角色设定 */}
+      {/* ══ Step 1：角色 ══ */}
+      {step === 1 && (() => {
+        const curChar = chars[activeSlot];
+        const setCharField = (field, val) => setChars(prev => prev.map((c, i) => i === activeSlot ? { ...c, [field]: val } : c));
+        const pickLibChar = (lc) => setChars(prev => prev.map((c, i) => i === activeSlot ? { ...c, id: lc.id, name: lc.name, gender: lc.gender, img: lc.img } : c));
+        const filteredLib = [...CHAR_LIBRARY, ...customChars].filter(c => libFilter === 'all' || c.gender === libFilter);
+
+        const handleUpload = (e) => {
+          const file = e.target.files[0]; if (!file) return;
+          const url = URL.createObjectURL(file);
+          const newChar = { id: `custom_${Date.now()}`, gender: 'custom', name: '自定义角色', img: url, placeholder: false };
+          setCustomChars(prev => [newChar, ...prev]);
+          setChars(prev => prev.map((c, i) => i === activeSlot ? { ...c, ...newChar } : c));
+        };
+
+        return (
+        <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 20, minHeight: '70vh' }}>
+          {/* ─ 左：选中角色卡 + 详情表单 ─ */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div className="tool-card">
-              <h3 style={{ marginTop: 0, fontSize: 15 }}>角色A（男/女主）</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div><label style={labelStyle}>角色名</label><input value={charA} onChange={e => setCharA(e.target.value)} placeholder="如：陈默、林清雪..." style={inputStyle} /></div>
-                <div><label style={labelStyle}>外貌描述</label><textarea value={charADesc} onChange={e => setCharADesc(e.target.value)} placeholder="身高、发色、眼睛、服装特征..." rows={3} style={{ ...inputStyle, resize: 'none' }} /></div>
-              </div>
-            </div>
-            <div className="tool-card">
-              <h3 style={{ marginTop: 0, fontSize: 15 }}>角色B</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div><label style={labelStyle}>角色名</label><input value={charB} onChange={e => setCharB(e.target.value)} placeholder="如：林夏、温砚..." style={inputStyle} /></div>
-                <div><label style={labelStyle}>外貌描述</label><textarea value={charBDesc} onChange={e => setCharBDesc(e.target.value)} placeholder="身高、发色、眼睛、服装特征..." rows={3} style={{ ...inputStyle, resize: 'none' }} /></div>
-              </div>
-            </div>
-            <div style={{ padding: 12, background: '#6c5ce711', borderRadius: 10, border: '1px solid #6c5ce733', fontSize: 12, color: 'var(--muted)', lineHeight: 1.7 }}>
-              💡 角色描述越详细，生成的图片一致性越高。建议包含发色、瞳色、服装颜色。
-            </div>
-          </div>
-
-          {/* 右：分镜列表 */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <div style={{ flex: 1, fontSize: 13, color: 'var(--muted)' }}>
-                共 <b style={{ color: 'var(--text)' }}>{boards.length}</b> 个分镜 · 预计 <b style={{ color: '#6c5ce7' }}>{totalDur}s</b>
-              </div>
-              <button onClick={() => { setBoards(parseScriptToBoards(script)); }} style={{ ...outlineBtn, fontSize: 12 }}>🔄 重新拆解</button>
-              <button onClick={addBoard} style={{ ...outlineBtn, fontSize: 12, color: '#6c5ce7', borderColor: '#6c5ce744' }}>+ 添加</button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflowY: 'auto', paddingRight: 4 }}>
-              {boards.map((b, i) => (
-                <BoardCard key={b.id} board={b} idx={i} total={boards.length}
-                  onChange={data => updateBoard(b.id, data)}
-                  onDelete={deleteBoard} onMove={moveBoard} />
+            {/* 两个角色槽 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {chars.map((c, i) => (
+                <div key={i} onClick={() => setActiveSlot(i)}
+                  style={{ borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: `2px solid ${activeSlot === i ? '#00d2b4' : 'var(--border)'}`, transition: 'border-color .2s', position: 'relative', background: 'var(--card)' }}>
+                  {c.img ? (
+                    <img src={c.img} alt={c.name} style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }} />
+                  ) : (
+                    <div style={{ height: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', color: 'var(--muted)', gap: 8 }}>
+                      <div style={{ fontSize: 32 }}>👤</div>
+                      <div style={{ fontSize: 12 }}>点击选择角色</div>
+                    </div>
+                  )}
+                  {activeSlot === i && (
+                    <div style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '50%', background: '#00d2b4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13 }}>✓</div>
+                  )}
+                  <div style={{ padding: '8px 10px', background: 'var(--card)', borderTop: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 12, color: '#00d2b4', fontWeight: 600 }}>角色{i === 0 ? 'A' : 'B'}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name || '未选择'}</div>
+                  </div>
+                </div>
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button onClick={() => setStep(0)} style={outlineBtn}>← 返回剧本</button>
-              <button className="btn-primary" onClick={() => setStep(2)} style={{ flex: 1 }} disabled={boards.length === 0}>
-                下一步：生图 →
+            {/* 角色详情表单 */}
+            <div style={{ background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#00d2b4', marginBottom: 2 }}>角色{activeSlot === 0 ? 'A' : 'B'} 详情</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div><label style={labelStyle}>角色名称</label><input value={curChar.name} onChange={e => setCharField('name', e.target.value)} placeholder="如：韩立" style={inputStyle} /></div>
+                <div><label style={labelStyle}>性别</label>
+                  <select value={curChar.gender} onChange={e => setCharField('gender', e.target.value)} style={inputStyle}>
+                    <option value="male">男</option><option value="female">女</option>
+                  </select>
+                </div>
+                <div><label style={labelStyle}>年龄</label><input value={curChar.age} onChange={e => setCharField('age', e.target.value)} placeholder="如：25" style={inputStyle} /></div>
+                <div><label style={labelStyle}>身份</label><input value={curChar.identity} onChange={e => setCharField('identity', e.target.value)} placeholder="如：修仙者" style={inputStyle} /></div>
+                <div><label style={labelStyle}>眼睛颜色</label><input value={curChar.eyeColor} onChange={e => setCharField('eyeColor', e.target.value)} placeholder="如：幽蓝" style={inputStyle} /></div>
+                <div><label style={labelStyle}>头发颜色</label><input value={curChar.hairColor} onChange={e => setCharField('hairColor', e.target.value)} placeholder="如：白银" style={inputStyle} /></div>
+              </div>
+              <div><label style={labelStyle}>描述</label><textarea value={curChar.desc} onChange={e => setCharField('desc', e.target.value)} placeholder="外貌、气质、服装特征..." rows={2} style={{ ...inputStyle, resize: 'none' }} /></div>
+              <div><label style={labelStyle}>独特特征</label><input value={curChar.traits} onChange={e => setCharField('traits', e.target.value)} placeholder="如：左手有一道剑疤" style={inputStyle} /></div>
+              <input ref={uploadRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} />
+              <button onClick={() => uploadRef.current?.click()} style={{ ...outlineBtn, width: '100%', padding: '10px', fontSize: 13, color: '#00d2b4', borderColor: '#00d2b444', textAlign: 'center' }}>
+                📷 上传我的角色
+              </button>
+            </div>
+
+            {/* 底部按钮 */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setStep(0)} style={outlineBtn}>← 返回</button>
+              <button className="btn-primary" onClick={() => setStep(2)} style={{ flex: 1, background: 'linear-gradient(90deg,#00d2b4,#6c5ce7)' }}>
+                下一步 →
               </button>
             </div>
           </div>
+
+          {/* ─ 右：角色库 ─ */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>角色库</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[['all','全部'],['male','男性'],['female','女性']].map(([v,l]) => (
+                  <button key={v} onClick={() => setLibFilter(v)} style={{ padding: '5px 14px', borderRadius: 20, border: `1px solid ${libFilter===v?'#00d2b4':'var(--border)'}`, background: libFilter===v?'#00d2b422':'transparent', color: libFilter===v?'#00d2b4':'var(--muted)', cursor: 'pointer', fontSize: 13, transition: 'all .15s' }}>{l}</button>
+                ))}
+              </div>
+              <button onClick={() => uploadRef.current?.click()} style={{ marginLeft: 'auto', ...outlineBtn, fontSize: 12, color: '#00d2b4', borderColor: '#00d2b444' }}>+ 上传角色</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))', gap: 10, overflowY: 'auto', maxHeight: '72vh', paddingRight: 4 }}>
+              {filteredLib.map(lc => {
+                const selected = chars.some(c => c.id === lc.id);
+                const isActive = chars[activeSlot]?.id === lc.id;
+                return (
+                  <div key={lc.id} onClick={() => pickLibChar(lc)}
+                    style={{ borderRadius: 10, overflow: 'hidden', cursor: 'pointer', border: `2px solid ${isActive ? '#00d2b4' : selected ? '#6c5ce766' : 'var(--border)'}`, transition: 'border-color .15s, transform .15s', position: 'relative' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = ''}>
+                    <img src={lc.img} alt={lc.name} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block', background: '#eee' }} />
+                    {isActive && (
+                      <div style={{ position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: '50%', background: '#00d2b4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12 }}>✓</div>
+                    )}
+                    <div style={{ padding: '6px 8px', background: 'var(--card)', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>{lc.name}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* ══ Step 2：生图 ══ */}
       {step === 2 && (
@@ -387,20 +476,18 @@ function ProjectWorkspace({ project, onBack }) {
             <p style={{ color: 'var(--muted)', fontSize: 13 }}>使用以下工具为每个分镜生成对应画面，注意保持角色一致性</p>
 
             {/* 角色提示词 */}
-            {(charA || charB) && (
+            {chars.some(c => c.name) && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-                {charA && (
-                  <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 12, color: '#6c5ce7', fontWeight: 600, marginBottom: 4 }}>{charA}</div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>{charADesc || '暂无描述'}</div>
+                {chars.map((c, i) => c.name && (
+                  <div key={i} style={{ padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    {c.img && <img src={c.img} alt={c.name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
+                    <div>
+                      <div style={{ fontSize: 12, color: i === 0 ? '#00d2b4' : '#e17055', fontWeight: 600, marginBottom: 2 }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>{[c.gender === 'male' ? '男' : '女', c.age && `${c.age}岁`, c.identity, c.hairColor && `${c.hairColor}发`, c.eyeColor && `${c.eyeColor}眼`].filter(Boolean).join(' · ')}</div>
+                      {c.desc && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{c.desc}</div>}
+                    </div>
                   </div>
-                )}
-                {charB && (
-                  <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 12, color: '#e17055', fontWeight: 600, marginBottom: 4 }}>{charB}</div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>{charBDesc || '暂无描述'}</div>
-                  </div>
-                )}
+                ))}
               </div>
             )}
 
