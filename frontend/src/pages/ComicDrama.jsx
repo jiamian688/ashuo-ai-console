@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 /* ─── 常量 ─── */
 const STYLES = [
@@ -237,10 +237,82 @@ function ProjectWorkspace({ project, onBack }) {
   const [activeSlot, setActiveSlot] = useState(0);
   const [libFilter, setLibFilter] = useState('all'); // all | male | female
   const [customChars, setCustomChars] = useState([]);
-  const [charImgs, setCharImgs] = useState({}); // id -> {url, status: 'idle'|'loading'|'done'|'error'}
+  const [charImgs, setCharImgs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('comic_char_imgs') || '{}'); } catch { return {}; }
+  });
+  const autoGenRunning = useRef(false);
   const uploadRef = useRef(null);
   const [generating, setGenerating] = useState(false);
   const [loadingScript, setLoadingScript] = useState(false);
+
+  // 持久化到 localStorage
+  useEffect(() => {
+    const toSave = {};
+    Object.entries(charImgs).forEach(([k, v]) => { if (v.url) toSave[k] = { url: v.url, status: 'done' }; });
+    localStorage.setItem('comic_char_imgs', JSON.stringify(toSave));
+  }, [charImgs]);
+
+  // 进入角色步骤时自动批量生图
+  useEffect(() => {
+    if (step !== 1 || autoGenRunning.current) return;
+    autoGenRunning.current = true;
+    const token = localStorage.getItem('yule_token');
+    if (!token) return;
+
+    const need = CHAR_LIBRARY.filter(lc => !charImgs[lc.id]?.url);
+    if (need.length === 0) { autoGenRunning.current = false; return; }
+
+    // 标记全部为 loading
+    setCharImgs(prev => {
+      const next = { ...prev };
+      need.forEach(lc => { if (!next[lc.id]?.url) next[lc.id] = { status: 'loading', url: null }; });
+      return next;
+    });
+
+    // 提交所有任务
+    const submit = async (lc) => {
+      try {
+        const r = await fetch('/api/comic/txt2img', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ prompt: lc.prompt, width: 768, height: 1024, n: 1 }),
+        });
+        const d = await r.json();
+        return { lc, taskId: d.taskId };
+      } catch { return { lc, taskId: null }; }
+    };
+
+    const pollTask = (lc, taskId) => {
+      const check = async () => {
+        try {
+          const r = await fetch(`/api/comic/task/${taskId}`, { headers: { Authorization: `Bearer ${token}` } });
+          const d = await r.json();
+          if (d.status === 'completed' && d.outputs?.[0]?.url) {
+            const url = d.outputs[0].url;
+            setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'done', url } }));
+          } else if (d.status === 'failed') {
+            setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'error', url: null } }));
+          } else {
+            setTimeout(check, 5000);
+          }
+        } catch { setTimeout(check, 5000); }
+      };
+      setTimeout(check, 5000);
+    };
+
+    // 分批：每批 5 个，间隔 1s 避免并发过高
+    const runBatch = async () => {
+      const BATCH = 5;
+      for (let i = 0; i < need.length; i += BATCH) {
+        const batch = need.slice(i, i + BATCH);
+        const results = await Promise.all(batch.map(submit));
+        results.forEach(({ lc, taskId }) => { if (taskId) pollTask(lc, taskId); });
+        if (i + BATCH < need.length) await new Promise(r => setTimeout(r, 1000));
+      }
+      autoGenRunning.current = false;
+    };
+    runBatch();
+  }, [step]); // eslint-disable-line
 
   const toggleTag = (tag) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
 
@@ -410,12 +482,12 @@ function ProjectWorkspace({ project, onBack }) {
           setChars(prev => prev.map((c, i) => i === activeSlot ? { ...c, id: lc.id, name: lc.name, gender: lc.gender, img } : c));
         };
 
-        const aiGenerateChar = async (lc, e) => {
+        const retryGenChar = async (lc, e) => {
           e.stopPropagation();
           if (charImgs[lc.id]?.status === 'loading') return;
+          const token = localStorage.getItem('yule_token');
           setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'loading', url: null } }));
           try {
-            const token = localStorage.getItem('yule_token');
             const r = await fetch('/api/comic/txt2img', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -423,24 +495,18 @@ function ProjectWorkspace({ project, onBack }) {
             });
             const d = await r.json();
             if (!d.taskId) throw new Error('no taskId');
-            // poll
             const poll = async () => {
-              const tr = await fetch(`/api/comic/task/${d.taskId}`, { headers: { Authorization: `Bearer ${token}` } });
-              const td = await tr.json();
-              if (td.status === 'completed' && td.outputs?.[0]?.url) {
-                const url = td.outputs[0].url;
-                setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'done', url } }));
-                setChars(prev => prev.map((c) => c.id === lc.id ? { ...c, img: url } : c));
-              } else if (td.status === 'failed') {
-                setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'error', url: null } }));
-              } else {
-                setTimeout(poll, 4000);
-              }
+              try {
+                const td = await (await fetch(`/api/comic/task/${d.taskId}`, { headers: { Authorization: `Bearer ${token}` } })).json();
+                if (td.status === 'completed' && td.outputs?.[0]?.url) {
+                  setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'done', url: td.outputs[0].url } }));
+                } else if (td.status === 'failed') {
+                  setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'error', url: null } }));
+                } else setTimeout(poll, 5000);
+              } catch { setTimeout(poll, 5000); }
             };
-            setTimeout(poll, 4000);
-          } catch {
-            setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'error', url: null } }));
-          }
+            setTimeout(poll, 5000);
+          } catch { setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'error', url: null } })); }
         };
 
         const filteredLib = [...CHAR_LIBRARY, ...customChars].filter(c => libFilter === 'all' || c.gender === libFilter);
@@ -547,12 +613,12 @@ function ProjectWorkspace({ project, onBack }) {
                         </div>
                       )}
 
-                      {/* AI生成 按钮 */}
+                      {/* 生成状态 */}
                       {!imgInfo?.url && (
-                        <button onClick={(e) => aiGenerateChar(lc, e)}
-                          disabled={imgInfo?.status === 'loading'}
-                          style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', padding: '4px 12px', borderRadius: 20, border: 'none', background: imgInfo?.status === 'loading' ? 'rgba(0,0,0,.5)' : 'rgba(0,210,180,.85)', color: '#fff', fontSize: 11, cursor: imgInfo?.status === 'loading' ? 'wait' : 'pointer', whiteSpace: 'nowrap', fontWeight: 600, backdropFilter: 'blur(4px)' }}>
-                          {imgInfo?.status === 'loading' ? '⏳ 生成中...' : imgInfo?.status === 'error' ? '⚠️ 重试' : '✨ AI生成'}
+                        <button
+                          onClick={(e) => imgInfo?.status === 'error' ? retryGenChar(lc, e) : e.stopPropagation()}
+                          style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', padding: '4px 12px', borderRadius: 20, border: 'none', background: imgInfo?.status === 'loading' ? 'rgba(0,0,0,.55)' : imgInfo?.status === 'error' ? 'rgba(231,76,60,.85)' : 'rgba(0,210,180,.75)', color: '#fff', fontSize: 11, cursor: imgInfo?.status === 'error' ? 'pointer' : 'default', whiteSpace: 'nowrap', fontWeight: 600, backdropFilter: 'blur(4px)' }}>
+                          {imgInfo?.status === 'loading' ? '⏳ 生成中...' : imgInfo?.status === 'error' ? '⚠️ 重试' : '🎨 生成中'}
                         </button>
                       )}
 
