@@ -1,16 +1,30 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 
 /* ─── 常量 ─── */
-const FLOW_STEPS = [
-  { no: 1, icon: '📝', title: '剧本与分镜设计', desc: 'AI生成剧本与分镜', color: '#6c5ce7' },
-  { no: 2, icon: '🎨', title: '画面生成制作', desc: 'AI生成人物与场景', color: '#0984e3' },
-  { no: 3, icon: '✨', title: '动态分镜处理', desc: 'AI创作镜头与特效', color: '#00b894' },
-  { no: 4, icon: '🎙', title: '音效与配音生成', desc: 'AI自动生成配音与音效', color: '#e17055' },
-  { no: 5, icon: '🎬', title: '视频片段合成', desc: 'AI合成动漫画片段', color: '#fd79a8' },
-  { no: 6, icon: '🚀', title: '发布与观看', desc: '分享并观看动漫画剧', color: '#fdcb6e' },
+const STYLES = [
+  { id: 'guochao', label: '国潮漫画', emoji: '🏮', color: '#e17055' },
+  { id: 'wuxia', label: '武侠国漫', emoji: '⚔️', color: '#6c5ce7' },
+  { id: 'realistic', label: '写实武侠', emoji: '🌿', color: '#00b894' },
+  { id: '3d', label: '3D仙侠', emoji: '✨', color: '#0984e3' },
+  { id: 'fantasy', label: '奇幻插画', emoji: '🔮', color: '#a855f7' },
+  { id: 'cyber', label: '赛博朋克', emoji: '🌃', color: '#fd79a8' },
+  { id: 'anime', label: '日式动漫', emoji: '🌸', color: '#fdcb6e' },
+  { id: 'modern', label: '都市写实', emoji: '🏙', color: '#74b9ff' },
 ];
 
-const GENRES = ['都市爱情', '甜宠日常', '搞笑反转', '职场对话', '古风言情', '武侠奇谭'];
+const SCENE_TAGS = [
+  '丹霞红','剪纸窗花','糖画','丹青','腊八','青砖黛瓦','石屋',
+  '吊脚楼群','牌坊','画廊','拱门','钟楼','钟鼎','蛟龙','凤凰',
+  '水墨','竹影','飞白','云海','流萤','红梅','瀑布','枯叶蝶','敦煌',
+  '麒麟','门神','汉服','庙会','孔明灯','年画','灯笼','状元','云纹',
+  '荷花','长城','红包',
+];
+
+const RANDOM_EXAMPLES = [
+  '【凌晨2点，老旧公寓电梯内，暖黄灯光忽明忽暗】男主陈默背着满是古籍的帆布包，指尖沾着墨迹，是夜班图书管理员；女主林夏抱着画夹，眼下带着青黑，是赶稿的...',
+  '【霜绕竹间，温砚（男主）握柄青竹剑，剑尖轻挑竹露——他守着祖传"竹编剑法"残页，以为剑三十年。沈蔬（女主）持玫骨扇闯入，扇面"嗒"地展开，扇骨寒光...',
+  '【烛火映着斑驳的神像，凌锋（男主）握柄玄铁长刀立在祠中，刀身泛着冷光——他寻《寒锋诀》五年，终于查到在叶梧手中。叶梧（女主）持双剑护在神龛前，剑柄...',
+];
 
 const TOOL_LINKS = [
   { label: 'Leonardo AI', sub: '角色图生成', url: 'https://leonardo.ai', color: '#6c5ce7' },
@@ -19,11 +33,7 @@ const TOOL_LINKS = [
   { label: '剪映', sub: '配音·字幕·剪辑', url: 'https://www.capcut.cn', color: '#e17055' },
 ];
 
-const INIT_PROJECTS = [];
-
-const STEP_LABELS = ['剧本', '分镜', '角色图', '视频片段', '合成', '发布'];
-
-/* ─── 自动拆解分镜算法 ─── */
+/* ─── 自动拆解分镜 ─── */
 function parseScriptToBoards(text) {
   if (!text.trim()) return [];
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -32,629 +42,374 @@ function parseScriptToBoards(text) {
   let id = 1;
 
   for (const line of lines) {
-    // 场景行：【...】或 (场景：...) 或纯描述行（无冒号）
     const sceneMatch = line.match(/^[【\[(](.+?)[】\])]/) || line.match(/^场景[：:]\s*(.+)/);
-    if (sceneMatch) {
-      currentScene = sceneMatch[1] || line;
-      continue;
-    }
+    if (sceneMatch) { currentScene = sceneMatch[1] || line; continue; }
 
-    // 旁白行
     const narMatch = line.match(/^[（(]旁白[）)][：:]?\s*(.+)/);
     if (narMatch) {
-      boards.push({ id: id++, scene: currentScene || '延续场景', role: '旁白', action: '画外音', dialog: narMatch[1], dur: 3, locked: false });
+      boards.push({ id: id++, scene: currentScene || '延续场景', role: '旁白', action: '画外音', dialog: narMatch[1], dur: 3 });
       continue;
     }
 
-    // 对白行：角色名：台词 / 角色名（动作）：台词
     const dialogMatch = line.match(/^([^：:（(]{1,10})(?:[（(]([^）)]+)[）)])?[：:]\s*(.+)/);
     if (dialogMatch) {
       const role = dialogMatch[1].trim();
       const action = dialogMatch[2] || '';
       const dialog = dialogMatch[3].trim();
-      // 过滤掉明显是标题或说明的行
       if (role.length <= 8 && dialog.length > 0) {
-        boards.push({ id: id++, scene: currentScene || '延续场景', role, action, dialog, dur: Math.max(3, Math.ceil(dialog.length / 8)), locked: false });
+        boards.push({ id: id++, scene: currentScene || '延续场景', role, action, dialog, dur: Math.max(3, Math.ceil(dialog.length / 8)) });
         continue;
       }
     }
-
-    // 没匹配到，当作场景描述
-    if (line.length > 2 && !line.startsWith('#') && !line.startsWith('-')) {
-      currentScene = line;
-    }
+    if (line.length > 2 && !line.startsWith('#') && !line.startsWith('-')) currentScene = line;
   }
 
-  // 若解析结果为空，按每2行强制切割
   if (boards.length === 0) {
-    const chunks = [];
-    for (let i = 0; i < lines.length; i += 2) {
-      chunks.push({ id: id++, scene: lines[i] || '场景', role: '角色', action: '', dialog: lines[i + 1] || '', dur: 4, locked: false });
-    }
-    return chunks;
+    for (let i = 0; i < lines.length; i += 2)
+      boards.push({ id: id++, scene: lines[i] || '场景', role: '角色', action: '', dialog: lines[i + 1] || '', dur: 4 });
   }
   return boards;
 }
 
-/* ─── 样式常量 ─── */
+/* ─── 样式 ─── */
 const labelStyle = { fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 };
 const inputStyle = { width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13, boxSizing: 'border-box' };
 const outlineBtn = { padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', cursor: 'pointer', fontSize: 13 };
 const smallBtn = { width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 };
 
-/* ─── 片段列表组件 ─── */
-function ClipList({ clips, boards, onMove, onRemove }) {
+/* ─── 进度条 ─── */
+function ProgressBar({ step }) {
+  const steps = ['剧本', '角色', '生图', '完成'];
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {clips.map((c, i) => (
-        <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
-          <span style={{ color: '#6c5ce7', fontWeight: 700, minWidth: 28 }}>#{i + 1}</span>
-          {boards[i] && (
-            <span style={{ fontSize: 11, color: 'var(--muted)', background: 'var(--card)', padding: '2px 8px', borderRadius: 10, whiteSpace: 'nowrap', border: '1px solid var(--border)' }}>
-              {boards[i].role}：{boards[i].dialog.slice(0, 12)}…
-            </span>
-          )}
-          <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--muted)' }}>{c.name}</span>
-          {c.url && <a href={c.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#6c5ce7' }}>预览</a>}
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button onClick={() => onMove(i, -1)} disabled={i === 0} style={{ ...smallBtn, opacity: i === 0 ? 0.3 : 1 }}>↑</button>
-            <button onClick={() => onMove(i, 1)} disabled={i === clips.length - 1} style={{ ...smallBtn, opacity: i === clips.length - 1 ? 0.3 : 1 }}>↓</button>
-            <button onClick={() => onRemove(c.id)} style={{ ...smallBtn, color: '#e17055', borderColor: '#e1705544' }}>✕</button>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, margin: '0 0 28px 0' }}>
+      {steps.map((s, i) => {
+        const active = i === step;
+        const done = i < step;
+        return (
+          <div key={s} style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 28px', borderRadius: i === 0 ? '24px 0 0 24px' : i === steps.length - 1 ? '0 24px 24px 0' : 0,
+              background: active ? 'linear-gradient(90deg,#00d2b4,#6c5ce7)' : done ? '#6c5ce744' : 'var(--card)',
+              border: `1px solid ${active ? 'transparent' : done ? '#6c5ce755' : 'var(--border)'}`,
+              color: active ? '#fff' : done ? '#6c5ce7' : 'var(--muted)',
+              fontWeight: active ? 700 : 400, fontSize: 15,
+              transition: 'all .3s',
+              position: 'relative', zIndex: active ? 1 : 0,
+            }}>
+              <span style={{ width: 24, height: 24, borderRadius: '50%', background: active ? 'rgba(255,255,255,.25)' : done ? '#6c5ce7' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: active ? '#fff' : done ? '#fff' : 'var(--muted)' }}>
+                {done ? '✓' : i + 1}
+              </span>
+              {s}
+            </div>
+            {i < steps.length - 1 && (
+              <div style={{ width: 0, height: 0, borderTop: '22px solid transparent', borderBottom: '22px solid transparent', borderLeft: `12px solid ${done ? '#6c5ce744' : 'var(--card)'}`, marginLeft: -1, position: 'relative', zIndex: 2 }} />
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-/* ─── AI 自动生成卡片 ─── */
-function AutoGenCard({ board, idx, task, onSubmit, onAddClip }) {
-  const [imageUrl, setImageUrl] = useState('');
-  const [prompt, setPrompt] = useState('');
-  const [expanded, setExpanded] = useState(false);
-
-  const statusColor = { submitting: '#fdcb6e', processing: '#0984e3', completed: '#00b894', failed: '#e17055' };
-  const statusLabel = { submitting: '提交中...', processing: '生成中...', completed: '已完成', failed: '失败' };
-
-  return (
-    <div style={{ background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
-      {/* 头部 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setExpanded(e => !e)}>
-        <span style={{ minWidth: 28, height: 28, borderRadius: '50%', background: '#6c5ce7', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{idx + 1}</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#6c5ce7' }}>{board.role}</span>
-        <span style={{ fontSize: 13, color: 'var(--muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>"{board.dialog}"</span>
-        {task.status && (
-          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: `${statusColor[task.status]}22`, color: statusColor[task.status], border: `1px solid ${statusColor[task.status]}44` }}>
-            {statusLabel[task.status]}
-          </span>
-        )}
-        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{expanded ? '▲' : '▼'}</span>
-      </div>
-
-      {/* 展开内容 */}
-      {expanded && (
-        <div style={{ padding: 14 }}>
-          {task.status === 'completed' && task.urls?.length > 0 ? (
-            <div>
-              <div style={{ fontSize: 13, color: '#00b894', fontWeight: 600, marginBottom: 10 }}>✅ 视频已生成</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {task.urls.map((url, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <video src={url} controls style={{ width: 160, borderRadius: 8, border: '1px solid var(--border)' }} />
-                    <button onClick={() => onAddClip(url)} className="btn-primary" style={{ fontSize: 12, padding: '5px 10px' }}>
-                      + 加入合成列表
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : task.status === 'processing' || task.status === 'submitting' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: '#0984e311', borderRadius: 8 }}>
-              <div style={{ width: 16, height: 16, border: '2px solid #0984e3', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              <span style={{ fontSize: 13, color: '#0984e3' }}>AI 正在生成视频，约需 30-60 秒...</span>
-            </div>
-          ) : task.status === 'failed' ? (
-            <div style={{ padding: 10, background: '#e1705522', borderRadius: 8, fontSize: 13, color: '#e17055', marginBottom: 10 }}>
-              生成失败：{task.error}
-            </div>
-          ) : null}
-
-          {(!task.status || task.status === 'failed') && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: task.status === 'failed' ? 0 : 0 }}>
-              <div>
-                <label style={labelStyle}>分镜图片 URL（从 Leonardo/即梦 复制）</label>
-                <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://... 粘贴图片链接" style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>运动提示词（可选，默认用台词）</label>
-                <input value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={`默认：${board.dialog}`} style={inputStyle} />
-              </div>
-              <button className="btn-primary" onClick={() => onSubmit(imageUrl, prompt || board.dialog)} disabled={!imageUrl.trim()} style={{ opacity: imageUrl.trim() ? 1 : 0.5 }}>
-                🎬 生成此分镜视频（{board.dur}s）
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── 分镜卡片组件 ─── */
+/* ─── 分镜卡片 ─── */
 function BoardCard({ board, idx, total, onChange, onDelete, onMove }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ ...board });
-
   const save = () => { onChange(draft); setEditing(false); };
-  const cancel = () => { setDraft({ ...board }); setEditing(false); };
 
   return (
-    <div style={{
-      background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)',
-      overflow: 'hidden', transition: 'box-shadow .15s',
-    }}>
-      {/* 卡片头 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-        <span style={{ minWidth: 28, height: 28, borderRadius: '50%', background: '#6c5ce7', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
-          {idx + 1}
-        </span>
-        <span style={{ flex: 1, fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {board.scene}
-        </span>
-        <div style={{ display: 'flex', gap: 4 }}>
-          <button onClick={() => onMove(idx, -1)} disabled={idx === 0} style={{ ...smallBtn, opacity: idx === 0 ? 0.3 : 1 }} title="上移">↑</button>
-          <button onClick={() => onMove(idx, 1)} disabled={idx === total - 1} style={{ ...smallBtn, opacity: idx === total - 1 ? 0.3 : 1 }} title="下移">↓</button>
-          <button onClick={() => setEditing(!editing)} style={{ ...smallBtn, color: '#6c5ce7', borderColor: '#6c5ce744' }} title="编辑">✏️</button>
-          <button onClick={() => onDelete(board.id)} style={{ ...smallBtn, color: '#e17055', borderColor: '#e1705544' }} title="删除">✕</button>
+    <div style={{ background: 'var(--card)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+        <span style={{ minWidth: 24, height: 24, borderRadius: '50%', background: '#6c5ce7', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{idx + 1}</span>
+        <span style={{ flex: 1, fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{board.scene}</span>
+        <div style={{ display: 'flex', gap: 3 }}>
+          <button onClick={() => onMove(idx, -1)} disabled={idx === 0} style={{ ...smallBtn, opacity: idx === 0 ? 0.3 : 1 }}>↑</button>
+          <button onClick={() => onMove(idx, 1)} disabled={idx === total - 1} style={{ ...smallBtn, opacity: idx === total - 1 ? 0.3 : 1 }}>↓</button>
+          <button onClick={() => setEditing(!editing)} style={{ ...smallBtn, color: '#6c5ce7' }}>✏️</button>
+          <button onClick={() => onDelete(board.id)} style={{ ...smallBtn, color: '#e17055' }}>✕</button>
         </div>
       </div>
-
-      {/* 卡片内容 */}
       {!editing ? (
-        <div style={{ padding: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 12, alignItems: 'start' }}>
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>角色</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#6c5ce7' }}>{board.role}</div>
-            {board.action && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>（{board.action}）</div>}
-          </div>
-          <div style={{ gridColumn: 'span 2' }}>
-            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>台词</div>
-            <div style={{ fontSize: 13, lineHeight: 1.6 }}>"{board.dialog}"</div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>时长</div>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{board.dur}s</div>
-          </div>
+        <div style={{ padding: '10px 12px', display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 10, alignItems: 'start' }}>
+          <div><div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 2 }}>角色</div><div style={{ fontSize: 13, fontWeight: 600, color: '#6c5ce7' }}>{board.role}</div>{board.action && <div style={{ fontSize: 11, color: 'var(--muted)' }}>（{board.action}）</div>}</div>
+          <div><div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 2 }}>台词</div><div style={{ fontSize: 13 }}>"{board.dialog}"</div></div>
+          <div style={{ textAlign: 'right' }}><div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 2 }}>时长</div><div style={{ fontSize: 13, fontWeight: 600 }}>{board.dur}s</div></div>
         </div>
       ) : (
         <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div>
-              <label style={labelStyle}>场景背景</label>
-              <input value={draft.scene} onChange={e => setDraft(d => ({ ...d, scene: e.target.value }))} style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>角色名</label>
-              <input value={draft.role} onChange={e => setDraft(d => ({ ...d, role: e.target.value }))} style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>动作/表情</label>
-              <input value={draft.action} onChange={e => setDraft(d => ({ ...d, action: e.target.value }))} placeholder="如：皱眉、微笑、转身..." style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>时长（秒）</label>
-              <input type="number" min={2} max={10} value={draft.dur} onChange={e => setDraft(d => ({ ...d, dur: Number(e.target.value) }))} style={inputStyle} />
-            </div>
+            <div><label style={labelStyle}>场景</label><input value={draft.scene} onChange={e => setDraft(d => ({ ...d, scene: e.target.value }))} style={inputStyle} /></div>
+            <div><label style={labelStyle}>角色名</label><input value={draft.role} onChange={e => setDraft(d => ({ ...d, role: e.target.value }))} style={inputStyle} /></div>
+            <div><label style={labelStyle}>动作/表情</label><input value={draft.action} onChange={e => setDraft(d => ({ ...d, action: e.target.value }))} style={inputStyle} /></div>
+            <div><label style={labelStyle}>时长(秒)</label><input type="number" min={2} max={10} value={draft.dur} onChange={e => setDraft(d => ({ ...d, dur: Number(e.target.value) }))} style={inputStyle} /></div>
           </div>
-          <div>
-            <label style={labelStyle}>台词</label>
-            <textarea value={draft.dialog} onChange={e => setDraft(d => ({ ...d, dialog: e.target.value }))} rows={2} style={{ ...inputStyle, resize: 'none' }} />
-          </div>
+          <div><label style={labelStyle}>台词</label><textarea value={draft.dialog} onChange={e => setDraft(d => ({ ...d, dialog: e.target.value }))} rows={2} style={{ ...inputStyle, resize: 'none' }} /></div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-primary" onClick={save} style={{ flex: 1, padding: '7px' }}>保存</button>
-            <button onClick={cancel} style={{ ...outlineBtn, flex: 1 }}>取消</button>
+            <button className="btn-primary" onClick={save} style={{ flex: 1, padding: 7 }}>保存</button>
+            <button onClick={() => setEditing(false)} style={{ ...outlineBtn, flex: 1 }}>取消</button>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/* ─── 项目卡片 ─── */
-function ProjectCard({ project, onClick }) {
-  return (
-    <div onClick={onClick} style={{
-      background: 'var(--card)', borderRadius: 12, overflow: 'hidden',
-      cursor: 'pointer', border: '1px solid var(--border)',
-      transition: 'transform .15s, box-shadow .15s',
-    }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px #0002'; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
-    >
-      <div style={{ height: 100, background: 'linear-gradient(135deg,#2d1066,#6c5ce7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🎭</div>
-      <div style={{ padding: '10px 12px' }}>
-        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.title}</div>
-        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>{project.date}</div>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {STEP_LABELS.map((l, i) => (
-            <span key={l} style={{
-              fontSize: 10, padding: '2px 6px', borderRadius: 4,
-              background: i < project.step ? '#6c5ce7' : 'var(--bg)',
-              color: i < project.step ? '#fff' : 'var(--muted)',
-              border: `1px solid ${i < project.step ? '#6c5ce7' : 'var(--border)'}`,
-            }}>{l}</span>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
 
 /* ─── 工作区 ─── */
-function ProjectWorkspace({ project, onBack, onSave }) {
-  const [activeStep, setActiveStep] = useState(0);
-  const [genre, setGenre] = useState('');
-  const [theme, setTheme] = useState('');
+function ProjectWorkspace({ project, onBack }) {
+  const [step, setStep] = useState(0);       // 0剧本 1角色 2生图 3完成
+  const [scriptTab, setScriptTab] = useState('mine'); // mine | ai
+  const [script, setScript] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState('');
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [boards, setBoards] = useState([]);
+  const [parsing, setParsing] = useState(false);
   const [charA, setCharA] = useState('');
   const [charB, setCharB] = useState('');
-  const [script, setScript] = useState('');
+  const [charADesc, setCharADesc] = useState('');
+  const [charBDesc, setCharBDesc] = useState('');
+  const [generating, setGenerating] = useState(false);
   const [loadingScript, setLoadingScript] = useState(false);
-  const [parsing, setParsing] = useState(false);
-  const [boards, setBoards] = useState([]); // 分镜列表
-  const [copied, setCopied] = useState(false);
-  const [clips, setClips] = useState([]);
-  const [imgTasks, setImgTasks] = useState({}); // boardId → { taskId, status, urls[], prompt }
-  const [clipMode, setClipMode] = useState('upload'); // 'upload' | 'auto'
-  const [merging, setMerging] = useState(false);
-  const [mergeResult, setMergeResult] = useState(null);
-  const [mergeError, setMergeError] = useState('');
-  const [balance, setBalance] = useState(null);
-  const clipInputRef = useRef(null);
 
-  const loadBalance = async () => {
-    try {
-      const res = await fetch('/api/comic/balance', { headers: { Authorization: `Bearer ${localStorage.getItem('yule_token')}` } });
-      if (res.ok) setBalance(await res.json());
-    } catch {}
-  };
+  const toggleTag = (tag) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
 
-  const submitImg2Video = async (board, imageUrl, prompt) => {
-    setImgTasks(prev => ({ ...prev, [board.id]: { taskId: null, status: 'submitting', urls: [], prompt } }));
-    try {
-      const res = await fetch('/api/comic/img2video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('yule_token')}` },
-        body: JSON.stringify({ imageUrl, prompt: prompt || board.dialog, duration: board.dur, width: 1080, height: 1920 }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      const taskId = data.taskId;
-      setImgTasks(prev => ({ ...prev, [board.id]: { taskId, status: 'processing', urls: [], prompt } }));
-      // 开始轮询
-      pollTask(board.id, taskId);
-    } catch (err) {
-      setImgTasks(prev => ({ ...prev, [board.id]: { taskId: null, status: 'failed', urls: [], prompt, error: err.message } }));
-    }
-  };
+  const buildAiPrompt = () =>
+    `请为我写一段漫剧剧本，风格：${selectedStyle || '都市爱情'}，场景元素：${selectedTags.join('、') || '随机'}。\n格式：【场景描述】\n角色名（动作）：台词\n共10-14句对白，结尾留悬念。`;
 
-  const pollTask = (boardId, taskId) => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/comic/task/${taskId}`, { headers: { Authorization: `Bearer ${localStorage.getItem('yule_token')}` } });
-        const data = await res.json();
-        if (data.status === 'completed') {
-          clearInterval(interval);
-          const urls = (data.outputs || []).map(o => o.url).filter(Boolean);
-          setImgTasks(prev => ({ ...prev, [boardId]: { ...prev[boardId], status: 'completed', urls } }));
-        } else if (data.status === 'failed') {
-          clearInterval(interval);
-          setImgTasks(prev => ({ ...prev, [boardId]: { ...prev[boardId], status: 'failed', error: data.error } }));
-        }
-      } catch { clearInterval(interval); }
-    }, 4000);
-  };
-
-  const addClipFromUrl = (url, name) => {
-    setClips(prev => [...prev, { id: Date.now(), file: null, name: name || url.split('/').pop(), url }]);
-  };
-
-  const buildPrompt = () => {
-    const g = genre || '都市爱情'; const t = theme || '偶遇重逢';
-    const a = charA || '男主'; const b = charB || '女主';
-    return `请为我写一段漫剧剧本，要求：
-- 类型：${g}，主题：${t}
-- 角色A（${a}）：性格鲜明，有反差感
-- 角色B（${b}）：情绪丰富，对话有张力
-- 格式：每个场景用【场景描述】标注，然后写 角色名：台词，共8-12句对白
-- 示例格式：
-【咖啡厅，午后阳光】
-${a}：你怎么在这里？
-${b}（微愣）：这句话应该我来问你。
-- 风格：节奏紧凑，适合1-3分钟短视频，结尾留悬念`;
-  };
-
-  const generateScript = async () => {
+  const generateAiScript = async () => {
     setLoadingScript(true); setScript('');
     try {
       const res = await fetch('/api/comic/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('yule_token')}` },
-        body: JSON.stringify({ prompt: buildPrompt() }),
+        body: JSON.stringify({ prompt: buildAiPrompt() }),
       });
-      if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setScript(data.script || '');
     } catch {
-      // 后端未接入时，展示示例剧本便于演示
-      const g = genre || '都市爱情'; const a = charA || '男主'; const b = charB || '女主';
-      setScript(`【咖啡厅窗边，午后阳光斜射进来】
-${a}：你怎么在这里？
-${b}（微愣，随即恢复冷静）：这句话应该我来问你。
-${a}（靠近一步）：三年了，你还是一点没变。
-${b}：你变了很多。（低头，手指轻轻绕着杯沿）
-${a}：哪里变了？
-${b}：你学会撒谎了。
-
-【窗外，一辆黑色轿车缓缓停下】
-${a}（神色微变）：我从没骗过你。
-${b}：那当初——（话未说完，手机震动）
-${b}（看了一眼屏幕，站起身）：我先走了。
-${a}（抓住她的手腕）：等等，我有话说。
-${b}（停顿，背对着他）：有些话，晚了三年，说了也没用。`);
+      setScript(buildAiPrompt() + '\n\n（后端未配置 AI Key，请复制提示词到 Claude 手动生成后粘贴回来）');
     } finally { setLoadingScript(false); }
   };
 
-  // 自动拆解分镜
   const autoParseBoards = () => {
     if (!script.trim()) return;
     setParsing(true);
     setTimeout(() => {
-      const result = parseScriptToBoards(script);
-      setBoards(result);
+      setBoards(parseScriptToBoards(script));
       setParsing(false);
-      setActiveStep(1); // 跳到分镜步骤
+      setStep(1);
     }, 600);
   };
 
-  const updateBoard = (id, newData) => setBoards(prev => prev.map(b => b.id === id ? { ...b, ...newData } : b));
+  const updateBoard = (id, data) => setBoards(prev => prev.map(b => b.id === id ? { ...b, ...data } : b));
   const deleteBoard = (id) => setBoards(prev => prev.filter(b => b.id !== id));
-  const moveBoard = (idx, dir) => {
-    setBoards(prev => {
-      const arr = [...prev];
-      const to = idx + dir;
-      if (to < 0 || to >= arr.length) return arr;
-      [arr[idx], arr[to]] = [arr[to], arr[idx]];
-      return arr;
-    });
-  };
-  const addBoard = () => setBoards(prev => [...prev, { id: Date.now(), scene: '新场景', role: '角色', action: '', dialog: '台词内容', dur: 4, locked: false }]);
+  const moveBoard = (idx, dir) => setBoards(prev => {
+    const arr = [...prev]; const to = idx + dir;
+    if (to < 0 || to >= arr.length) return arr;
+    [arr[idx], arr[to]] = [arr[to], arr[idx]]; return arr;
+  });
+  const addBoard = () => setBoards(prev => [...prev, { id: Date.now(), scene: '新场景', role: '角色', action: '', dialog: '台词', dur: 4 }]);
   const totalDur = boards.reduce((s, b) => s + b.dur, 0);
-
-  const copyText = (text) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
-
-  const handleClipUpload = (e) => {
-    const files = Array.from(e.target.files);
-    setClips(prev => [...prev, ...files.map((f, i) => ({ id: Date.now() + i, file: f, name: f.name }))]);
-  };
-  const removeClip = (id) => setClips(prev => prev.filter(c => c.id !== id));
-  const moveClip = (idx, dir) => {
-    setClips(prev => {
-      const arr = [...prev];
-      const to = idx + dir;
-      if (to < 0 || to >= arr.length) return arr;
-      [arr[idx], arr[to]] = [arr[to], arr[idx]];
-      return arr;
-    });
-  };
-
-  const mergeClips = async () => {
-    if (clips.length < 2) return setMergeError('请至少上传2个视频片段');
-    setMerging(true); setMergeError(''); setMergeResult(null);
-    try {
-      const form = new FormData();
-      clips.forEach(c => form.append('clips', c.file));
-      const res = await fetch('/api/comic/merge', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('yule_token')}` },
-        body: form,
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setMergeResult(data.url);
-    } catch (err) {
-      setMergeError('合成失败：' + err.message + '（后端接口待接入）');
-    } finally { setMerging(false); }
-  };
-
-  const WORKSPACE_STEPS = [
-    { label: '剧本生成', icon: '📝' },
-    { label: `分镜脚本${boards.length ? `(${boards.length})` : ''}`, icon: '🎞' },
-    { label: '角色图', icon: '🎨' },
-    { label: `视频片段${clips.length ? `(${clips.length})` : ''}`, icon: '🎬' },
-    { label: '合成导出', icon: '✂️' },
-    { label: '发布', icon: '🚀' },
-  ];
 
   return (
     <div className="page">
       {/* 顶部 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <button onClick={onBack} style={outlineBtn}>← 返回</button>
-        <h2 style={{ margin: 0, fontSize: 18 }}>{project.title}</h2>
-        {boards.length > 0 && (
-          <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: '#6c5ce722', color: '#6c5ce7', border: '1px solid #6c5ce744' }}>
-            {boards.length} 个分镜 · 约 {totalDur}s
-          </span>
-        )}
-        <button onClick={() => onSave(activeStep + 1)} style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 8, border: 'none', background: '#6c5ce7', color: '#fff', cursor: 'pointer', fontSize: 13 }}>保存进度</button>
+        <h2 style={{ margin: 0, fontSize: 17 }}>{project.title}</h2>
+        {boards.length > 0 && <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: '#6c5ce722', color: '#6c5ce7', border: '1px solid #6c5ce744' }}>{boards.length} 个分镜 · {totalDur}s</span>}
       </div>
 
-      {/* 步骤条 */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 24, background: 'var(--card)', borderRadius: 12, padding: 4, border: '1px solid var(--border)', overflowX: 'auto' }}>
-        {WORKSPACE_STEPS.map((s, i) => (
-          <button key={i} onClick={() => setActiveStep(i)} style={{
-            flex: 1, minWidth: 80, padding: '10px 6px', border: 'none', borderRadius: 8, cursor: 'pointer',
-            background: activeStep === i ? '#6c5ce7' : 'transparent',
-            color: activeStep === i ? '#fff' : 'var(--muted)',
-            fontSize: 11, fontWeight: activeStep === i ? 700 : 400, transition: 'all .15s',
-          }}>
-            <div style={{ fontSize: 18, marginBottom: 2 }}>{s.icon}</div>
-            {s.label}
-          </button>
-        ))}
-      </div>
+      <ProgressBar step={step} />
 
-      {/* ── Step 0: 剧本 ── */}
-      {activeStep === 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div className="tool-card">
-            <h3 style={{ marginTop: 0 }}>剧本设定</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div>
-                <label style={labelStyle}>漫剧类型</label>
-                <select value={genre} onChange={e => setGenre(e.target.value)} style={inputStyle}>
-                  <option value="">选择类型...</option>
-                  {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle}>情节主题</label>
-                <input value={theme} onChange={e => setTheme(e.target.value)} placeholder="偶遇重逢、误会解开..." style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>角色A（男/女主）</label>
-                <input value={charA} onChange={e => setCharA(e.target.value)} placeholder="霸道总裁、普通上班族..." style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>角色B</label>
-                <input value={charB} onChange={e => setCharB(e.target.value)} placeholder="独立设计师、邻家女孩..." style={inputStyle} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-              <button className="btn-primary" onClick={generateScript} disabled={loadingScript} style={{ flex: 1 }}>
-                {loadingScript ? '生成中...' : '✨ AI 生成剧本'}
-              </button>
-              <button onClick={() => copyText(buildPrompt())} style={outlineBtn}>{copied ? '已复制' : '复制提示词'}</button>
-            </div>
-          </div>
-
-          <div className="tool-card" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <h3 style={{ margin: 0 }}>剧本内容</h3>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {script && <button onClick={() => copyText(script)} style={{ ...outlineBtn, fontSize: 12, padding: '4px 10px' }}>{copied ? '已复制' : '复制'}</button>}
-              </div>
-            </div>
-            <textarea
-              value={script}
-              onChange={e => setScript(e.target.value)}
-              placeholder={`点击「AI 生成剧本」或直接粘贴你的剧本...\n\n格式建议：\n【场景描述】\n角色名：台词\n角色名（动作）：台词`}
-              rows={13}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7, flex: 1, fontFamily: 'inherit' }}
-            />
-            <button
-              className="btn-primary"
-              onClick={autoParseBoards}
-              disabled={!script.trim() || parsing}
-              style={{ marginTop: 10, background: parsing ? '#999' : 'linear-gradient(90deg,#6c5ce7,#a855f7)', fontSize: 14, padding: '11px' }}
-            >
-              {parsing ? '拆解中...' : `🎞 自动拆解分镜${script.trim() ? '' : '（请先填写剧本）'}`}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Step 1: 分镜 ── */}
-      {activeStep === 1 && (
-        <div>
-          {/* 工具栏 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <div style={{ flex: 1 }}>
-              {boards.length > 0 ? (
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-                  共 <b style={{ color: 'var(--text)' }}>{boards.length}</b> 个分镜 · 预计总时长 <b style={{ color: '#6c5ce7' }}>{totalDur} 秒</b>
-                </span>
-              ) : (
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>暂无分镜，请返回剧本步骤自动拆解，或手动添加</span>
-              )}
-            </div>
-            <button onClick={() => { setBoards(parseScriptToBoards(script)); }} disabled={!script.trim()} style={{ ...outlineBtn, fontSize: 12 }}>
-              🔄 重新拆解
-            </button>
-            <button onClick={addBoard} style={{ ...outlineBtn, fontSize: 12, color: '#6c5ce7', borderColor: '#6c5ce744' }}>
-              + 新增分镜
-            </button>
-            {boards.length > 0 && (
-              <button onClick={() => copyText(boards.map((b, i) => `#${i + 1} [${b.scene}] ${b.role}${b.action ? `（${b.action}）` : ''}：${b.dialog}`).join('\n'))}
-                style={{ ...outlineBtn, fontSize: 12 }}>
-                {copied ? '已复制' : '导出分镜表'}
-              </button>
-            )}
-          </div>
-
-          {/* 分镜卡片列表 */}
-          {boards.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {boards.map((b, i) => (
-                <BoardCard
-                  key={b.id}
-                  board={b}
-                  idx={i}
-                  total={boards.length}
-                  onChange={data => updateBoard(b.id, data)}
-                  onDelete={deleteBoard}
-                  onMove={moveBoard}
-                />
-              ))}
-              {/* 底部总计 + 下一步 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderTop: '1px solid var(--border)', marginTop: 4 }}>
-                <div style={{ flex: 1, fontSize: 13, color: 'var(--muted)' }}>
-                  {boards.length} 个分镜 · 总时长约 {totalDur}s · 建议每个分镜生成一张角色图后转视频
-                </div>
-                <button onClick={addBoard} style={{ ...outlineBtn, fontSize: 12 }}>+ 添加</button>
-                <button className="btn-primary" onClick={() => setActiveStep(2)}>下一步：角色图 →</button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '60px 20px', border: '2px dashed var(--border)', borderRadius: 12 }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🎞</div>
-              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>还没有分镜</div>
-              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>返回剧本步骤点击「自动拆解分镜」，或手动添加</div>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <button onClick={() => setActiveStep(0)} style={outlineBtn}>← 去生成剧本</button>
-                <button onClick={addBoard} className="btn-primary">手动添加分镜</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Step 2: 角色图 ── */}
-      {activeStep === 2 && (
-        <div style={{ maxWidth: 760 }}>
-          {/* 分镜速览 */}
-          {boards.length > 0 && (
-            <div className="tool-card" style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>分镜速览（{boards.length} 个）</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {boards.map((b, i) => (
-                  <div key={b.id} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--muted)' }}>
-                    <span style={{ color: '#6c5ce7', fontWeight: 700 }}>#{i + 1}</span> {b.role}：{b.dialog.slice(0, 10)}{b.dialog.length > 10 ? '...' : ''}
+      {/* ══ Step 0：剧本 ══ */}
+      {step === 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20 }}>
+          {/* 左侧：风格 + 场景元素 */}
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>风格</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {STYLES.map(s => (
+                  <div key={s.id} onClick={() => setSelectedStyle(s.id === selectedStyle ? '' : s.id)}
+                    style={{ borderRadius: 10, overflow: 'hidden', cursor: 'pointer', border: `2px solid ${selectedStyle === s.id ? s.color : 'var(--border)'}`, transition: 'border-color .2s', position: 'relative' }}>
+                    <div style={{ height: 72, background: `linear-gradient(135deg, ${s.color}33, ${s.color}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>{s.emoji}</div>
+                    <div style={{ padding: '6px 8px', fontSize: 12, fontWeight: selectedStyle === s.id ? 700 : 400, color: selectedStyle === s.id ? s.color : 'var(--text)', background: 'var(--card)', textAlign: 'center' }}>{s.label}</div>
+                    {selectedStyle === s.id && <div style={{ position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: '50%', background: s.color, color: '#fff', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</div>}
                   </div>
                 ))}
               </div>
             </div>
-          )}
 
-          <div className="tool-card">
-            <h3 style={{ marginTop: 0 }}>角色图生成工具</h3>
-            <p style={{ color: 'var(--muted)', fontSize: 13 }}>为每个分镜生成对应画面，<b>角色一致性</b>是关键</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>场景元素 <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}>（不选则默认随机使用场景）</span></div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {SCENE_TAGS.map(tag => (
+                  <span key={tag} onClick={() => toggleTag(tag)} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${selectedTags.includes(tag) ? '#6c5ce7' : 'var(--border)'}`, background: selectedTags.includes(tag) ? '#6c5ce722' : 'var(--bg)', color: selectedTags.includes(tag) ? '#6c5ce7' : 'var(--text)', transition: 'all .15s' }}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 右侧：剧本输入 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Tab 切换 */}
+            <div style={{ display: 'flex', gap: 0, background: 'var(--card)', borderRadius: 24, padding: 4, border: '1px solid var(--border)', alignSelf: 'flex-start' }}>
+              {[{ key: 'mine', label: '采用我的剧本' }, { key: 'ai', label: '智能剧本' }].map(t => (
+                <button key={t.key} onClick={() => setScriptTab(t.key)} style={{ padding: '8px 22px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: scriptTab === t.key ? 700 : 400, background: scriptTab === t.key ? 'linear-gradient(90deg,#00d2b4,#6c5ce7)' : 'transparent', color: scriptTab === t.key ? '#fff' : 'var(--muted)', transition: 'all .2s' }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {scriptTab === 'mine' ? (
+              <>
+                <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.7 }}>
+                  请输入至少1000字的剧本，以确保情节完整度<br />
+                  剧本内容请必与选择的风格相符合，否则可能生成的场景图不符合预期哦<br />
+                  <span style={{ color: '#6c5ce7' }}>参考示例：</span><br />
+                  京都大学，经管系新生接待处。<br />
+                  穿着一袭白色长裙的林清雪安然的坐在新生接待处的椅子上。<br />
+                  柔顺的黑色长发披肩，在阳光的照耀下呈现出微微波浪卷度。
+                </div>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <textarea value={script} onChange={e => setScript(e.target.value)}
+                    placeholder="在此粘贴或输入你的剧本..."
+                    rows={12}
+                    style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.8, fontFamily: 'inherit', fontSize: 14 }} />
+                  <div style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 11, color: 'var(--muted)' }}>{script.length} / 20000</div>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>选择风格和场景元素后，AI 将为你生成完整剧本</div>
+                <button className="btn-primary" onClick={generateAiScript} disabled={loadingScript} style={{ alignSelf: 'flex-start', padding: '10px 24px' }}>
+                  {loadingScript ? '生成中...' : '✨ 一键生成剧本'}
+                </button>
+                {script && (
+                  <div style={{ position: 'relative' }}>
+                    <textarea value={script} onChange={e => setScript(e.target.value)} rows={12} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.8, fontFamily: 'inherit', fontSize: 14 }} />
+                    <div style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 11, color: 'var(--muted)' }}>{script.length} / 20000</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 随机生成示例 */}
+            {!script && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: 14, fontWeight: 600 }}>
+                  随机生成
+                  <span style={{ fontSize: 18, cursor: 'pointer', color: '#6c5ce7' }} onClick={() => {}}>↺</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+                  {RANDOM_EXAMPLES.map((ex, i) => (
+                    <div key={i} onClick={() => setScript(ex)} style={{ padding: 12, borderRadius: 10, background: 'var(--card)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, cursor: 'pointer', transition: 'border-color .2s' }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = '#6c5ce7'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = ''}>
+                      {ex.slice(0, 80)}...
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 拆解分镜按钮 */}
+            <button
+              onClick={autoParseBoards}
+              disabled={!script.trim() || parsing}
+              style={{ width: '100%', padding: '13px', borderRadius: 10, border: 'none', cursor: script.trim() ? 'pointer' : 'not-allowed', fontSize: 15, fontWeight: 700, background: script.trim() ? 'linear-gradient(90deg,#6c5ce7,#a855f7)' : 'var(--card)', color: script.trim() ? '#fff' : 'var(--muted)', transition: 'all .2s' }}>
+              {parsing ? '拆解中...' : '🎞 拆解分镜'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══ Step 1：角色 + 分镜确认 ══ */}
+      {step === 1 && (
+        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20 }}>
+          {/* 左：角色设定 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="tool-card">
+              <h3 style={{ marginTop: 0, fontSize: 15 }}>角色A（男/女主）</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div><label style={labelStyle}>角色名</label><input value={charA} onChange={e => setCharA(e.target.value)} placeholder="如：陈默、林清雪..." style={inputStyle} /></div>
+                <div><label style={labelStyle}>外貌描述</label><textarea value={charADesc} onChange={e => setCharADesc(e.target.value)} placeholder="身高、发色、眼睛、服装特征..." rows={3} style={{ ...inputStyle, resize: 'none' }} /></div>
+              </div>
+            </div>
+            <div className="tool-card">
+              <h3 style={{ marginTop: 0, fontSize: 15 }}>角色B</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div><label style={labelStyle}>角色名</label><input value={charB} onChange={e => setCharB(e.target.value)} placeholder="如：林夏、温砚..." style={inputStyle} /></div>
+                <div><label style={labelStyle}>外貌描述</label><textarea value={charBDesc} onChange={e => setCharBDesc(e.target.value)} placeholder="身高、发色、眼睛、服装特征..." rows={3} style={{ ...inputStyle, resize: 'none' }} /></div>
+              </div>
+            </div>
+            <div style={{ padding: 12, background: '#6c5ce711', borderRadius: 10, border: '1px solid #6c5ce733', fontSize: 12, color: 'var(--muted)', lineHeight: 1.7 }}>
+              💡 角色描述越详细，生成的图片一致性越高。建议包含发色、瞳色、服装颜色。
+            </div>
+          </div>
+
+          {/* 右：分镜列表 */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{ flex: 1, fontSize: 13, color: 'var(--muted)' }}>
+                共 <b style={{ color: 'var(--text)' }}>{boards.length}</b> 个分镜 · 预计 <b style={{ color: '#6c5ce7' }}>{totalDur}s</b>
+              </div>
+              <button onClick={() => { setBoards(parseScriptToBoards(script)); }} style={{ ...outlineBtn, fontSize: 12 }}>🔄 重新拆解</button>
+              <button onClick={addBoard} style={{ ...outlineBtn, fontSize: 12, color: '#6c5ce7', borderColor: '#6c5ce744' }}>+ 添加</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflowY: 'auto', paddingRight: 4 }}>
+              {boards.map((b, i) => (
+                <BoardCard key={b.id} board={b} idx={i} total={boards.length}
+                  onChange={data => updateBoard(b.id, data)}
+                  onDelete={deleteBoard} onMove={moveBoard} />
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setStep(0)} style={outlineBtn}>← 返回剧本</button>
+              <button className="btn-primary" onClick={() => setStep(2)} style={{ flex: 1 }} disabled={boards.length === 0}>
+                下一步：生图 →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ Step 2：生图 ══ */}
+      {step === 2 && (
+        <div style={{ maxWidth: 760 }}>
+          <div className="tool-card" style={{ marginBottom: 16 }}>
+            <h3 style={{ marginTop: 0 }}>生成角色图</h3>
+            <p style={{ color: 'var(--muted)', fontSize: 13 }}>使用以下工具为每个分镜生成对应画面，注意保持角色一致性</p>
+
+            {/* 角色提示词 */}
+            {(charA || charB) && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                {charA && (
+                  <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 12, color: '#6c5ce7', fontWeight: 600, marginBottom: 4 }}>{charA}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>{charADesc || '暂无描述'}</div>
+                  </div>
+                )}
+                {charB && (
+                  <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 12, color: '#e17055', fontWeight: 600, marginBottom: 4 }}>{charB}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>{charBDesc || '暂无描述'}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {[
                 { name: 'Leonardo AI', tag: '推荐免费', url: 'https://leonardo.ai', color: '#6c5ce7', tip: '每日150积分，用 Character Reference 保持角色一致' },
-                { name: 'Midjourney', tag: '质量最高', url: 'https://midjourney.com', color: '#0984e3', tip: '用 --cref 参数固定角色，付费订阅' },
-                { name: '即梦 AI', tag: '国产免费', url: 'https://jimeng.jianying.com', color: '#00b894', tip: '字节出品，免费额度多，可直接图转视频' },
-                { name: 'Stable Diffusion', tag: '本地免费', url: 'https://stability.ai', color: '#e17055', tip: '本地部署完全免费，需一定技术基础' },
+                { name: '即梦 AI', tag: '国产免费', url: 'https://jimeng.jianying.com', color: '#0984e3', tip: '字节出品，免费额度多，可直接图转视频' },
+                { name: '海螺 AI', tag: '口型同步', url: 'https://hailuoai.com', color: '#00b894', tip: '支持嘴型同步，对话漫剧效果好' },
+                { name: 'Midjourney', tag: '质量最高', url: 'https://midjourney.com', color: '#e17055', tip: '用 --cref 固定角色，付费订阅' },
               ].map(p => (
                 <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block', padding: 14, borderRadius: 10, border: `1px solid ${p.color}44`, background: `${p.color}11`, color: 'var(--text)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -665,215 +420,86 @@ ${b}（停顿，背对着他）：有些话，晚了三年，说了也没用。`
                 </a>
               ))}
             </div>
-            <div style={{ marginTop: 12, padding: 12, background: 'var(--bg)', borderRadius: 8, fontSize: 13, color: 'var(--muted)', border: '1px dashed var(--border)' }}>
-              💡 生成后按分镜编号命名（01.png, 02.png…），再上传到即梦/海螺生成3-5秒视频片段
+
+            <div style={{ marginTop: 14, padding: 12, background: 'var(--bg)', borderRadius: 8, fontSize: 13, color: 'var(--muted)', border: '1px dashed var(--border)' }}>
+              💡 生成完成后，将图片上传到 即梦/海螺 转成3-5秒视频片段，再回到合成步骤
             </div>
           </div>
-
-          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-            <button onClick={() => setActiveStep(1)} style={outlineBtn}>← 返回</button>
-            <button className="btn-primary" onClick={() => setActiveStep(3)} style={{ flex: 1 }}>下一步：上传视频片段 →</button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Step 3: 视频片段 ── */}
-      {activeStep === 3 && (
-        <div style={{ maxWidth: 820 }}>
-          {/* 模式切换 + 余额 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <div style={{ display: 'flex', background: 'var(--card)', borderRadius: 10, padding: 3, border: '1px solid var(--border)' }}>
-              {[{ key: 'upload', label: '📂 手动上传' }, { key: 'auto', label: '✨ AI 自动生成' }].map(m => (
-                <button key={m.key} onClick={() => { setClipMode(m.key); if (m.key === 'auto') loadBalance(); }}
-                  style={{ padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: clipMode === m.key ? 700 : 400, background: clipMode === m.key ? '#6c5ce7' : 'transparent', color: clipMode === m.key ? '#fff' : 'var(--muted)', transition: 'all .15s' }}>
-                  {m.label}
-                </button>
-              ))}
-            </div>
-            {balance && (
-              <span style={{ fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#00b89422', color: '#00b894', border: '1px solid #00b89444' }}>
-                FRW 余额：{balance.creditsRemaining} 积分
-              </span>
-            )}
-            <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}>
-              已收集 <b style={{ color: '#6c5ce7' }}>{clips.length}</b> 个片段
-            </span>
-          </div>
-
-          {/* ── 手动上传模式 ── */}
-          {clipMode === 'upload' && (
-            <div className="tool-card" style={{ marginBottom: 16 }}>
-              <h3 style={{ marginTop: 0 }}>手动上传视频片段</h3>
-              <label style={{ display: 'block', border: '2px dashed var(--border)', borderRadius: 10, padding: '24px', textAlign: 'center', cursor: 'pointer', marginBottom: 16, background: 'var(--bg)', transition: 'border-color .2s' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = '#6c5ce7'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = ''}>
-                <input ref={clipInputRef} type="file" accept="video/*" multiple onChange={handleClipUpload} style={{ display: 'none' }} />
-                <div style={{ fontSize: 32, marginBottom: 8 }}>🎬</div>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>点击上传视频片段</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>支持 MP4、MOV、AVI · 建议每片段3-5秒</div>
-              </label>
-              {clips.length > 0 && <ClipList clips={clips} boards={boards} onMove={moveClip} onRemove={removeClip} />}
-            </div>
-          )}
-
-          {/* ── AI 自动生成模式 ── */}
-          {clipMode === 'auto' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-              <div style={{ padding: '10px 14px', background: '#6c5ce711', borderRadius: 10, border: '1px solid #6c5ce733', fontSize: 13, color: 'var(--muted)' }}>
-                💡 为每个分镜提供<b style={{ color: 'var(--text)' }}>图片URL</b>，点击生成按钮，AI自动转成3-5秒视频片段（消耗FRW积分）
-              </div>
-
-              {boards.length === 0 && (
-                <div style={{ textAlign: 'center', padding: 40, border: '2px dashed var(--border)', borderRadius: 12, color: 'var(--muted)' }}>
-                  请先完成分镜脚本步骤
-                </div>
-              )}
-
-              {boards.map((b, i) => {
-                const task = imgTasks[b.id] || {};
-                return (
-                  <AutoGenCard
-                    key={b.id}
-                    board={b}
-                    idx={i}
-                    task={task}
-                    onSubmit={(imageUrl, prompt) => submitImg2Video(b, imageUrl, prompt)}
-                    onAddClip={url => addClipFromUrl(url, `分镜${i + 1}_${b.role}.mp4`)}
-                  />
-                );
-              })}
-            </div>
-          )}
-
-          {/* 已收集片段总览 */}
-          {clips.length > 0 && clipMode === 'auto' && (
-            <div className="tool-card" style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>已收集片段（{clips.length}个）</div>
-              <ClipList clips={clips} boards={boards} onMove={moveClip} onRemove={removeClip} />
-            </div>
-          )}
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => setActiveStep(2)} style={outlineBtn}>← 返回</button>
-            <button className="btn-primary" onClick={() => setActiveStep(4)} style={{ flex: 1 }} disabled={clips.length === 0}>
-              {clips.length === 0 ? '请先收集视频片段' : `下一步：合成 ${clips.length} 个片段 →`}
-            </button>
+            <button onClick={() => setStep(1)} style={outlineBtn}>← 返回</button>
+            <button className="btn-primary" onClick={() => setStep(3)} style={{ flex: 1 }}>完成 →</button>
           </div>
         </div>
       )}
 
-      {/* ── Step 4: 合成 ── */}
-      {activeStep === 4 && (
-        <div style={{ maxWidth: 760 }}>
-          <div className="tool-card" style={{ marginBottom: 16 }}>
-            <h3 style={{ marginTop: 0 }}>视频合成导出</h3>
+      {/* ══ Step 3：完成 ══ */}
+      {step === 3 && (
+        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+          <h2 style={{ marginBottom: 8 }}>漫剧创作完成！</h2>
+          <p style={{ color: 'var(--muted)', marginBottom: 24 }}>
+            {boards.length} 个分镜 · 预计 {totalDur} 秒 · 风格：{STYLES.find(s => s.id === selectedStyle)?.label || '默认'}
+          </p>
 
-            {/* 片段顺序预览 */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-              {clips.map((c, i) => (
-                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: 'var(--bg)', borderRadius: 20, border: '1px solid var(--border)', fontSize: 12 }}>
-                  <span style={{ color: '#6c5ce7', fontWeight: 700 }}>#{i + 1}</span>
-                  <span style={{ maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--muted)' }}>{c.name}</span>
-                </div>
-              ))}
-              {clips.length === 0 && <span style={{ fontSize: 13, color: 'var(--muted)' }}>没有片段，请返回上传</span>}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-              {[
-                { label: '视频片段', value: `${clips.length} 个` },
-                { label: '预计时长', value: `${clips.length * 4}s` },
-                { label: '输出格式', value: '1080×1920 竖屏' },
-              ].map(s => (
-                <div key={s.label} style={{ padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{s.label}</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#6c5ce7' }}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-
-            {mergeError && <div style={{ padding: 10, borderRadius: 8, background: '#e1705522', color: '#e17055', fontSize: 13, marginBottom: 12 }}>{mergeError}</div>}
-
-            {mergeResult ? (
-              <div style={{ padding: 14, background: '#00b89422', borderRadius: 10, border: '1px solid #00b89444', marginBottom: 12 }}>
-                <div style={{ fontWeight: 600, color: '#00b894', marginBottom: 8 }}>✅ 合成成功！</div>
-                <a href={mergeResult} download style={{ display: 'inline-block', padding: '8px 16px', background: '#00b894', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13 }}>⬇ 下载视频</a>
-              </div>
-            ) : (
-              <button className="btn-primary" onClick={mergeClips} disabled={merging || clips.length < 2} style={{ width: '100%', fontSize: 15, padding: '13px' }}>
-                {merging ? '合成中...' : `🎬 开始合成视频（${clips.length} 个片段）`}
-              </button>
-            )}
-            {clips.length < 2 && <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginTop: 6 }}>至少需要2个片段</div>}
-          </div>
-
-          {/* 手动合成说明 */}
-          <div className="tool-card">
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>🎞 手动合成（剪映）</div>
-            {['导入所有片段，按分镜顺序排列', '添加AI配音（男声/女声对应角色）', '开启自动字幕识别', '添加轻音乐背景', '导出1080P → 上传平台'].map((s, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, fontSize: 13 }}>
-                <div style={{ minWidth: 20, height: 20, borderRadius: '50%', background: '#6c5ce7', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>{i + 1}</div>
-                {s}
-              </div>
-            ))}
-            <a href="https://www.capcut.cn" target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: 8, marginTop: 10, background: '#6c5ce7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13 }}>打开剪映 ↗</a>
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-            <button onClick={() => setActiveStep(3)} style={outlineBtn}>← 返回</button>
-            <button className="btn-primary" onClick={() => setActiveStep(5)} style={{ flex: 1 }}>下一步：发布 →</button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Step 5: 发布 ── */}
-      {activeStep === 5 && (
-        <div className="tool-card" style={{ maxWidth: 760 }}>
-          <h3 style={{ marginTop: 0 }}>🚀 发布与观看</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 24 }}>
             {[
-              { name: '抖音', icon: '🎵', color: '#000', desc: '最大流量，竖屏1080×1920' },
-              { name: '小红书', icon: '📕', color: '#ff2442', desc: '高质量用户，适合漫剧' },
-              { name: 'B站', icon: '📺', color: '#00a1d6', desc: '二次元用户，横竖均可' },
+              { name: '抖音', icon: '🎵', desc: '最大流量，竖屏' },
+              { name: '小红书', icon: '📕', desc: '高质量用户' },
+              { name: 'B站', icon: '📺', desc: '二次元聚集' },
             ].map(p => (
-              <div key={p.name} style={{ padding: 14, borderRadius: 10, border: `1px solid ${p.color}33`, background: `${p.color}11`, textAlign: 'center' }}>
+              <div key={p.name} style={{ padding: 16, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--card)' }}>
                 <div style={{ fontSize: 28, marginBottom: 6 }}>{p.icon}</div>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{p.desc}</div>
               </div>
             ))}
           </div>
-          <div style={{ padding: 16, background: 'linear-gradient(135deg,#6c5ce722,#a855f722)', borderRadius: 10, border: '1px solid #6c5ce733', textAlign: 'center' }}>
-            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>🎉 第一集完成！</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 14 }}>保持角色Reference图一致，系列风格才会统一</div>
-            <button className="btn-primary" onClick={() => { setActiveStep(0); setScript(''); setBoards([]); setClips([]); setMergeResult(null); }}>
-              开始下一集 →
-            </button>
-          </div>
+
+          <button className="btn-primary" onClick={() => { setStep(0); setScript(''); setBoards([]); setSelectedStyle(''); setSelectedTags([]); }} style={{ width: '100%', padding: 13, fontSize: 15 }}>
+            开始下一集 →
+          </button>
         </div>
       )}
     </div>
   );
 }
 
+/* ─── 项目卡片 ─── */
+function ProjectCard({ project, onClick }) {
+  const style = STYLES.find(s => s.id === project.styleId);
+  return (
+    <div onClick={onClick} style={{ background: 'var(--card)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: '1px solid var(--border)', transition: 'transform .15s, box-shadow .15s' }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px #0002'; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
+      <div style={{ height: 100, background: style ? `linear-gradient(135deg,${style.color}55,${style.color}99)` : 'linear-gradient(135deg,#2d1066,#6c5ce7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>
+        {style?.emoji || '🎭'}
+      </div>
+      <div style={{ padding: '10px 12px' }}>
+        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.title}</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{project.date}</div>
+        <div style={{ fontSize: 11, color: style?.color || '#6c5ce7' }}>{style?.label || '未设风格'}</div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── 主页面 ─── */
 export default function ComicDrama() {
-  const [projects, setProjects] = useState(INIT_PROJECTS);
+  const [projects, setProjects] = useState([]);
   const [activeProject, setActiveProject] = useState(null);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
 
   const createProject = () => {
     if (!newTitle.trim()) return;
-    const p = { id: Date.now(), title: newTitle.trim(), date: new Date().toLocaleDateString('zh-CN'), step: 0, episodes: 0 };
+    const p = { id: Date.now(), title: newTitle.trim(), date: new Date().toLocaleDateString('zh-CN'), styleId: '' };
     setProjects(prev => [p, ...prev]);
     setNewTitle(''); setCreating(false);
     setActiveProject(p);
   };
 
-  const saveProgress = (step) => setProjects(prev => prev.map(p => p.id === activeProject.id ? { ...p, step: Math.max(p.step, step) } : p));
-
-  if (activeProject) return <ProjectWorkspace project={activeProject} onBack={() => setActiveProject(null)} onSave={saveProgress} />;
+  if (activeProject) return <ProjectWorkspace project={activeProject} onBack={() => setActiveProject(null)} />;
 
   return (
     <div className="page">
@@ -884,13 +510,18 @@ export default function ComicDrama() {
         </div>
       </section>
 
-      {/* 6步流程 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 8, margin: '20px 0', overflowX: 'auto' }}>
-        {FLOW_STEPS.map(s => (
-          <div key={s.no} style={{ background: 'var(--card)', borderRadius: 10, padding: '14px 10px', border: `1px solid ${s.color}33`, textAlign: 'center' }}>
+      {/* 流程说明 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, margin: '20px 0' }}>
+        {[
+          { no: 1, icon: '📝', title: '剧本', desc: '写剧本或AI生成，选风格' },
+          { no: 2, icon: '🎭', title: '角色', desc: '设定角色外貌，确认分镜' },
+          { no: 3, icon: '🎨', title: '生图', desc: '生成每帧画面，图转视频' },
+          { no: 4, icon: '🚀', title: '完成', desc: '合成导出，发布平台' },
+        ].map(s => (
+          <div key={s.no} style={{ background: 'var(--card)', borderRadius: 10, padding: '14px 12px', border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: 24, marginBottom: 6 }}>{s.icon}</div>
-            <div style={{ fontSize: 11, color: s.color, fontWeight: 700, marginBottom: 4 }}>{s.no}、{s.title}</div>
-            <div style={{ fontSize: 10, color: 'var(--muted)' }}>{s.desc}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Step {s.no}：{s.title}</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>{s.desc}</div>
           </div>
         ))}
       </div>
@@ -902,7 +533,6 @@ export default function ComicDrama() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12, marginBottom: 32 }}>
-        {/* 新建卡片 */}
         {!creating ? (
           <div onClick={() => setCreating(true)} style={{ background: 'var(--card)', borderRadius: 12, cursor: 'pointer', border: '2px dashed var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 170, transition: 'border-color .2s, background .2s' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#6c5ce7'; e.currentTarget.style.background = '#6c5ce711'; }}
@@ -912,15 +542,8 @@ export default function ComicDrama() {
           </div>
         ) : (
           <div style={{ background: 'var(--card)', borderRadius: 12, border: '2px solid #6c5ce7', minHeight: 170, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#6c5ce7', marginBottom: 4 }}>📝 输入漫剧标题</div>
-            <input
-              value={newTitle}
-              onChange={e => setNewTitle(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && createProject()}
-              placeholder="如：都市爱情第一集"
-              autoFocus
-              style={{ ...inputStyle, fontSize: 14 }}
-            />
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#6c5ce7' }}>📝 输入漫剧标题</div>
+            <input value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && createProject()} placeholder="如：都市爱情第一集" autoFocus style={{ ...inputStyle, fontSize: 14 }} />
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn-primary" onClick={createProject} style={{ flex: 1 }}>创建</button>
               <button onClick={() => { setCreating(false); setNewTitle(''); }} style={outlineBtn}>取消</button>
@@ -931,10 +554,7 @@ export default function ComicDrama() {
       </div>
 
       {/* 常用工具 */}
-      <div className="section-head">
-        <h2>常用工具</h2>
-        <span className="hint">快捷跳转</span>
-      </div>
+      <div className="section-head"><h2>常用工具</h2><span className="hint">快捷跳转</span></div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
         {TOOL_LINKS.map(t => (
           <a key={t.label} href={t.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', padding: '12px 14px', borderRadius: 10, border: `1px solid ${t.color}33`, background: `${t.color}11`, display: 'block', transition: 'transform .15s' }}
