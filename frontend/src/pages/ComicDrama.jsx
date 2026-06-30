@@ -28,28 +28,69 @@ const RANDOM_EXAMPLES = [
 
 /* ─── 角色库（男 / 女） ─── */
 const CHAR_LIBRARY = [
-  // 男性角色
-  { id: 'm1', gender: 'male',   name: '韩立',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=hanli&backgroundColor=b6e3f4&top=longHair&hairColor=2c1b18&facialHair=beardMedium&clothesColor=3c4f5c', placeholder: true },
-  { id: 'm2', gender: 'male',   name: '叶辰',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=yechen&backgroundColor=c0aede&top=shortHair&hairColor=2c1b18&clothesColor=65c9ff', placeholder: true },
-  { id: 'm3', gender: 'male',   name: '林枫',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=linfeng&backgroundColor=d1d4f9&top=dreads&hairColor=4a312c&clothesColor=262e33', placeholder: true },
-  { id: 'm4', gender: 'male',   name: '萧炎',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=xiaoyan&backgroundColor=ffd5dc&top=shortHair&hairColor=1c1c1c&clothesColor=929598', placeholder: true },
-  { id: 'm5', gender: 'male',   name: '陈默',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=chenmuo&backgroundColor=b6e3f4&top=shortHairShortFlat&hairColor=1c1c1c&clothesColor=3c4f5c', placeholder: true },
-  { id: 'm6', gender: 'male',   name: '温砚',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=wenyan&backgroundColor=c0aede&top=dreads01&hairColor=ffffff&clothesColor=5199e4', placeholder: true },
-  { id: 'm7', gender: 'male',   name: '凌锋',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=lingfeng&backgroundColor=d1d4f9&top=longHair&hairColor=1c1c1c&clothesColor=262e33', placeholder: true },
-  { id: 'm8', gender: 'male',   name: '慕容峰', img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=murong&backgroundColor=ffdfbf&top=shortHair&hairColor=2c1b18&clothesColor=e6e6e6', placeholder: true },
-  { id: 'm9', gender: 'male',   name: '苏念',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=sunian&backgroundColor=b6e3f4&top=dreads&hairColor=b58143&clothesColor=929598', placeholder: true },
-  { id: 'm10',gender: 'male',   name: '沈轩',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=shenxuan&backgroundColor=ffd5dc&top=shortHair&hairColor=4a312c&clothesColor=3c4f5c', placeholder: true },
-  // 女性角色
-  { id: 'f1', gender: 'female', name: '南宫婉', img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=nangong&backgroundColor=ffd5dc&top=longHairStraight&hairColor=1c1c1c&clothesColor=ff4f00', placeholder: true },
-  { id: 'f2', gender: 'female', name: '林夏',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=linxia&backgroundColor=d1d4f9&top=longHairCurvy&hairColor=1c1c1c&clothesColor=b1e2ff', placeholder: true },
-  { id: 'f3', gender: 'female', name: '沈蔬',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=shenshu&backgroundColor=b6e3f4&top=longHairBun&hairColor=2c1b18&clothesColor=929598', placeholder: true },
-  { id: 'f4', gender: 'female', name: '叶梧',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=yewu&backgroundColor=c0aede&top=longHairStraight2&hairColor=4a312c&clothesColor=e6e6e6', placeholder: true },
-  { id: 'f5', gender: 'female', name: '林清雪', img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=linqingxue&backgroundColor=ffdfbf&top=longHairBob&hairColor=1c1c1c&clothesColor=ffffff', placeholder: true },
-  { id: 'f6', gender: 'female', name: '苏瑾',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=sujin&backgroundColor=ffd5dc&top=longHairCurly&hairColor=2c1b18&clothesColor=ff4f00', placeholder: true },
-  { id: 'f7', gender: 'female', name: '慕雪',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=muxue&backgroundColor=d1d4f9&top=longHairStraight&hairColor=1c1c1c&clothesColor=c9c9c9', placeholder: true },
-  { id: 'f8', gender: 'female', name: '叶倾',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=yeqing&backgroundColor=b6e3f4&top=longHairBun&hairColor=b58143&clothesColor=5199e4', placeholder: true },
-  { id: 'f9', gender: 'female', name: '冷冰',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=lengbing&backgroundColor=c0aede&top=longHairBob&hairColor=1c1c1c&clothesColor=262e33', placeholder: true },
-  { id: 'f10',gender: 'female', name: '宫九',   img: 'https://api.dicebear.com/9.x/avataaars/svg?seed=gongjiu&backgroundColor=ffdfbf&top=longHairCurvy&hairColor=2c1b18&clothesColor=929598', placeholder: true },
+  // ── 男性 ──
+  { id: 'm1', gender: 'male', name: '白衣剑仙', style: '仙侠', icon: '⚔️',
+    grad: 'linear-gradient(160deg,#1a1a2e 0%,#16213e 40%,#0f3460 70%,#e94560 100%)',
+    prompt: '1 male character, white ancient chinese robe, silver long hair tied up, xianxia cultivator, jade pendant, sword, full body portrait, white background, high quality anime style' },
+  { id: 'm2', gender: 'male', name: '黑袍战士', style: '武侠', icon: '🗡️',
+    grad: 'linear-gradient(160deg,#0d0d0d 0%,#1a1a1a 40%,#2d2d2d 70%,#4a4a4a 100%)',
+    prompt: '1 male character, black ancient chinese robe with silver trim, dark hair, martial artist warrior, intense gaze, full body portrait, white background, high quality anime style' },
+  { id: 'm3', gender: 'male', name: '青衣公子', style: '古风', icon: '🎋',
+    grad: 'linear-gradient(160deg,#0a2e1a 0%,#1a4a2a 40%,#2a6a3a 70%,#00d2b4 100%)',
+    prompt: '1 male character, teal cyan ancient chinese scholar robe, elegant young scholar, black hair with hairpin, fan in hand, full body portrait, white background, high quality anime style' },
+  { id: 'm4', gender: 'male', name: '金甲武将', style: '战将', icon: '🏆',
+    grad: 'linear-gradient(160deg,#2a1500 0%,#4a2500 40%,#8a4500 70%,#ffd700 100%)',
+    prompt: '1 male character, golden chinese armor general, commanding presence, black hair, decorated helmet, battle ready, full body portrait, white background, high quality anime style' },
+  { id: 'm5', gender: 'male', name: '紫袍魔尊', style: '魔道', icon: '🔮',
+    grad: 'linear-gradient(160deg,#1a0a2e 0%,#2d1066 40%,#4a1a8a 70%,#a855f7 100%)',
+    prompt: '1 male character, dark purple robe demon lord, silver white hair flowing, sinister yet handsome, magical aura, full body portrait, white background, high quality anime style' },
+  { id: 'm6', gender: 'male', name: '红衣刀客', style: '武侠', icon: '🔴',
+    grad: 'linear-gradient(160deg,#2e0a0a 0%,#4a1010 40%,#8a1a1a 70%,#e74c3c 100%)',
+    prompt: '1 male character, red ancient chinese robe, fierce warrior, black hair, large dao sword on back, scars, confident pose, full body portrait, white background, high quality anime style' },
+  { id: 'm7', gender: 'male', name: '银发仙人', style: '仙侠', icon: '🌟',
+    grad: 'linear-gradient(160deg,#1a1a2e 0%,#2a2a4a 40%,#3a3a6a 70%,#c0c0e0 100%)',
+    prompt: '1 male character, silver white flowing long hair, immortal white robe with celestial patterns, ethereal cultivator, serene expression, full body portrait, white background, high quality anime style' },
+  { id: 'm8', gender: 'male', name: '儒袍书生', style: '古风', icon: '📖',
+    grad: 'linear-gradient(160deg,#0a1a2e 0%,#1a2a4a 40%,#2a3a6a 70%,#6699cc 100%)',
+    prompt: '1 male character, light blue ancient chinese scholar robe, gentle young scholar, black hair with jade hairpin, holding a scroll, kind eyes, full body portrait, white background, high quality anime style' },
+  { id: 'm9', gender: 'male', name: '暗金铠甲', style: '战将', icon: '⚡',
+    grad: 'linear-gradient(160deg,#1a1200 0%,#2a2000 40%,#4a3800 70%,#b8860b 100%)',
+    prompt: '1 male character, dark gold ornate chinese armor, battle hardened warrior, stern expression, battle scars, imposing physique, full body portrait, white background, high quality anime style' },
+  { id: 'm10', gender: 'male', name: '素衣侠客', style: '武侠', icon: '🌙',
+    grad: 'linear-gradient(160deg,#1a1a1a 0%,#2a2a2a 40%,#3a3a3a 70%,#888888 100%)',
+    prompt: '1 male character, plain white grey ancient chinese traveler robe, wandering swordsman, dark hair, calm expression, simple sword, full body portrait, white background, high quality anime style' },
+
+  // ── 女性 ──
+  { id: 'f1', gender: 'female', name: '红衣宫主', style: '宫廷', icon: '👑',
+    grad: 'linear-gradient(160deg,#2e0a0a 0%,#6a1515 40%,#a01e1e 70%,#e74c3c 100%)',
+    prompt: '1 female character, elaborate red chinese imperial empress dress, silver crown with jewels, powerful and beautiful, black long hair decorated, full body portrait, white background, high quality anime style' },
+  { id: 'f2', gender: 'female', name: '素衣仙子', style: '仙侠', icon: '🌸',
+    grad: 'linear-gradient(160deg,#1a2a1a 0%,#2a4a2a 40%,#3a6a4a 70%,#7ecfa0 100%)',
+    prompt: '1 female character, pure white flowing immortal dress, gentle fairy cultivator, black hair with flowers, ethereal aura, serene smile, full body portrait, white background, high quality anime style' },
+  { id: 'f3', gender: 'female', name: '紫衣女王', style: '魔道', icon: '💜',
+    grad: 'linear-gradient(160deg,#1a0a2e 0%,#2d1066 40%,#4a1a8a 70%,#a855f7 100%)',
+    prompt: '1 female character, deep purple ancient chinese dress, mysterious sorceress, silver hair with purple highlights, magical staff, commanding presence, full body portrait, white background, high quality anime style' },
+  { id: 'f4', gender: 'female', name: '金凤皇女', style: '宫廷', icon: '🔱',
+    grad: 'linear-gradient(160deg,#2a1500 0%,#5a3000 40%,#8a5000 70%,#ffd700 100%)',
+    prompt: '1 female character, golden phoenix embroidered chinese imperial princess dress, noble princess, black hair with golden phoenix hairpin, elegant pose, full body portrait, white background, high quality anime style' },
+  { id: 'f5', gender: 'female', name: '白衣医仙', style: '仙侠', icon: '✨',
+    grad: 'linear-gradient(160deg,#1a1a2e 0%,#2a2a4a 40%,#e8e8f8 70%,#ffffff 100%)',
+    prompt: '1 female character, pure white ancient chinese healer robe with floral patterns, gentle healer, white silver hair, warm kind eyes, holding medicine pouch, full body portrait, white background, high quality anime style' },
+  { id: 'f6', gender: 'female', name: '黑衣刺客', style: '武侠', icon: '🌑',
+    grad: 'linear-gradient(160deg,#0d0d0d 0%,#1a1a1a 40%,#252525 70%,#555555 100%)',
+    prompt: '1 female character, black form fitting ancient chinese assassin outfit, mysterious masked beauty, black hair, daggers on belt, confident lethal pose, full body portrait, white background, high quality anime style' },
+  { id: 'f7', gender: 'female', name: '粉衣少女', style: '古风', icon: '🌺',
+    grad: 'linear-gradient(160deg,#2e0a1a 0%,#5a1a3a 40%,#8a3a6a 70%,#ffb6c1 100%)',
+    prompt: '1 female character, soft pink ancient chinese young lady dress, sweet innocent girl, black hair with pink ribbons, cute expression, camellia flowers, full body portrait, white background, high quality anime style' },
+  { id: 'f8', gender: 'female', name: '碧衣剑客', style: '武侠', icon: '💚',
+    grad: 'linear-gradient(160deg,#0a2e1a 0%,#1a5a3a 40%,#2a8a5a 70%,#00b894 100%)',
+    prompt: '1 female character, emerald green ancient chinese swordswoman outfit, athletic female warrior, black hair in ponytail, twin swords, determined expression, full body portrait, white background, high quality anime style' },
+  { id: 'f9', gender: 'female', name: '蓝衣圣女', style: '仙侠', icon: '💙',
+    grad: 'linear-gradient(160deg,#0a0a2e 0%,#1a1a5a 40%,#2a2a8a 70%,#4169e1 100%)',
+    prompt: '1 female character, celestial blue ancient chinese priestess robe with divine patterns, holy maiden, silver white long hair, glowing blue eyes, divine light, full body portrait, white background, high quality anime style' },
+  { id: 'f10', gender: 'female', name: '云鬓美人', style: '宫廷', icon: '🌙',
+    grad: 'linear-gradient(160deg,#1a0a2a 0%,#2a1040 40%,#3a1a5a 70%,#9b59b6 100%)',
+    prompt: '1 female character, lavender purple elaborate chinese court lady dress, delicate beauty, black hair in elaborate cloud bun with jade ornaments, gentle elegant pose, full body portrait, white background, high quality anime style' },
 ];
 
 const EMPTY_CHAR = { id: null, name: '', gender: 'female', age: '', identity: '', height: '', weight: '', eyeColor: '', hairColor: '', desc: '', traits: '', img: null };
@@ -196,6 +237,7 @@ function ProjectWorkspace({ project, onBack }) {
   const [activeSlot, setActiveSlot] = useState(0);
   const [libFilter, setLibFilter] = useState('all'); // all | male | female
   const [customChars, setCustomChars] = useState([]);
+  const [charImgs, setCharImgs] = useState({}); // id -> {url, status: 'idle'|'loading'|'done'|'error'}
   const uploadRef = useRef(null);
   const [generating, setGenerating] = useState(false);
   const [loadingScript, setLoadingScript] = useState(false);
@@ -362,7 +404,45 @@ function ProjectWorkspace({ project, onBack }) {
       {step === 1 && (() => {
         const curChar = chars[activeSlot];
         const setCharField = (field, val) => setChars(prev => prev.map((c, i) => i === activeSlot ? { ...c, [field]: val } : c));
-        const pickLibChar = (lc) => setChars(prev => prev.map((c, i) => i === activeSlot ? { ...c, id: lc.id, name: lc.name, gender: lc.gender, img: lc.img } : c));
+
+        const pickLibChar = (lc) => {
+          const img = charImgs[lc.id]?.url || null;
+          setChars(prev => prev.map((c, i) => i === activeSlot ? { ...c, id: lc.id, name: lc.name, gender: lc.gender, img } : c));
+        };
+
+        const aiGenerateChar = async (lc, e) => {
+          e.stopPropagation();
+          if (charImgs[lc.id]?.status === 'loading') return;
+          setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'loading', url: null } }));
+          try {
+            const token = localStorage.getItem('yule_token');
+            const r = await fetch('/api/comic/txt2img', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ prompt: lc.prompt, width: 768, height: 1024, n: 1 }),
+            });
+            const d = await r.json();
+            if (!d.taskId) throw new Error('no taskId');
+            // poll
+            const poll = async () => {
+              const tr = await fetch(`/api/comic/task/${d.taskId}`, { headers: { Authorization: `Bearer ${token}` } });
+              const td = await tr.json();
+              if (td.status === 'completed' && td.outputs?.[0]?.url) {
+                const url = td.outputs[0].url;
+                setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'done', url } }));
+                setChars(prev => prev.map((c) => c.id === lc.id ? { ...c, img: url } : c));
+              } else if (td.status === 'failed') {
+                setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'error', url: null } }));
+              } else {
+                setTimeout(poll, 4000);
+              }
+            };
+            setTimeout(poll, 4000);
+          } catch {
+            setCharImgs(prev => ({ ...prev, [lc.id]: { status: 'error', url: null } }));
+          }
+        };
+
         const filteredLib = [...CHAR_LIBRARY, ...customChars].filter(c => libFilter === 'all' || c.gender === libFilter);
 
         const handleUpload = (e) => {
@@ -445,23 +525,60 @@ function ProjectWorkspace({ project, onBack }) {
               <button onClick={() => uploadRef.current?.click()} style={{ marginLeft: 'auto', ...outlineBtn, fontSize: 12, color: '#00d2b4', borderColor: '#00d2b444' }}>+ 上传角色</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))', gap: 10, overflowY: 'auto', maxHeight: '72vh', paddingRight: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 10, overflowY: 'auto', maxHeight: '72vh', paddingRight: 4 }}>
               {filteredLib.map(lc => {
-                const selected = chars.some(c => c.id === lc.id);
+                const imgInfo = charImgs[lc.id];
                 const isActive = chars[activeSlot]?.id === lc.id;
+                const selected = chars.some(c => c.id === lc.id);
                 return (
                   <div key={lc.id} onClick={() => pickLibChar(lc)}
-                    style={{ borderRadius: 10, overflow: 'hidden', cursor: 'pointer', border: `2px solid ${isActive ? '#00d2b4' : selected ? '#6c5ce766' : 'var(--border)'}`, transition: 'border-color .15s, transform .15s', position: 'relative' }}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
+                    style={{ borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: `2px solid ${isActive ? '#00d2b4' : selected ? '#6c5ce766' : 'transparent'}`, transition: 'border-color .15s, transform .15s', position: 'relative', boxShadow: '0 2px 12px #0004' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
                     onMouseLeave={e => e.currentTarget.style.transform = ''}>
-                    <img src={lc.img} alt={lc.name} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block', background: '#eee' }} />
-                    {isActive && (
-                      <div style={{ position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: '50%', background: '#00d2b4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12 }}>✓</div>
-                    )}
-                    <div style={{ padding: '6px 8px', background: 'var(--card)', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>{lc.name}</div>
+
+                    {/* Portrait area */}
+                    <div style={{ height: 180, position: 'relative', background: lc.grad || '#1a1a2e' }}>
+                      {imgInfo?.url ? (
+                        <img src={imgInfo.url} alt={lc.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <div style={{ fontSize: 36, filter: 'drop-shadow(0 2px 8px #0008)' }}>{lc.icon}</div>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', background: 'rgba(0,0,0,.3)', padding: '2px 8px', borderRadius: 10 }}>{lc.style}</div>
+                        </div>
+                      )}
+
+                      {/* AI生成 按钮 */}
+                      {!imgInfo?.url && (
+                        <button onClick={(e) => aiGenerateChar(lc, e)}
+                          disabled={imgInfo?.status === 'loading'}
+                          style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', padding: '4px 12px', borderRadius: 20, border: 'none', background: imgInfo?.status === 'loading' ? 'rgba(0,0,0,.5)' : 'rgba(0,210,180,.85)', color: '#fff', fontSize: 11, cursor: imgInfo?.status === 'loading' ? 'wait' : 'pointer', whiteSpace: 'nowrap', fontWeight: 600, backdropFilter: 'blur(4px)' }}>
+                          {imgInfo?.status === 'loading' ? '⏳ 生成中...' : imgInfo?.status === 'error' ? '⚠️ 重试' : '✨ AI生成'}
+                        </button>
+                      )}
+
+                      {/* 选中标记 */}
+                      {isActive && (
+                        <div style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '50%', background: '#00d2b4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700, boxShadow: '0 2px 8px #00d2b480' }}>✓</div>
+                      )}
+                    </div>
+
+                    {/* Name bar */}
+                    <div style={{ padding: '7px 10px', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{lc.name}</span>
+                      <span style={{ fontSize: 10, color: lc.gender === 'male' ? '#74b9ff' : '#fd79a8', background: lc.gender === 'male' ? '#74b9ff22' : '#fd79a822', padding: '2px 6px', borderRadius: 8 }}>{lc.gender === 'male' ? '男' : '女'}</span>
+                    </div>
                   </div>
                 );
               })}
+
+              {/* 自定义上传卡 */}
+              <div onClick={() => uploadRef.current?.click()}
+                style={{ borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: '2px dashed var(--border)', transition: 'border-color .15s, transform .15s', minHeight: 218, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--card)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#00d2b4'; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.transform = ''; }}>
+                <div style={{ fontSize: 28, color: '#00d2b4' }}>+</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', lineHeight: 1.5, padding: '0 10px' }}>上传<br />自定义角色</div>
+              </div>
             </div>
           </div>
         </div>
