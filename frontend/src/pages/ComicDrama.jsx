@@ -96,21 +96,40 @@ const CHAR_LIBRARY = [
 const EMPTY_CHAR = { id: null, name: '', gender: 'female', age: '', identity: '', height: '', weight: '', eyeColor: '', hairColor: '', desc: '', traits: '', img: null };
 
 const VOICES = [
-  // 男声
-  { id: 'taiyizhenren', label: '太乙真人', tag: '仙侠·男', gender: 'male', color: '#6c5ce7' },
-  { id: 'yunlong',      label: '云龙大侠', tag: '武侠·男', gender: 'male', color: '#0984e3' },
-  { id: 'yingxiong',    label: '英雄少年', tag: '热血·男', gender: 'male', color: '#e17055' },
-  { id: 'shenshi',      label: '绅士先生', tag: '优雅·男', gender: 'male', color: '#00b894' },
-  { id: 'chenwen',      label: '沉稳大叔', tag: '醇厚·男', gender: 'male', color: '#636e72' },
-  { id: 'shaonian',     label: '阳光少年', tag: '青春·男', gender: 'male', color: '#fdcb6e' },
+  // 男声  pitch 0.1-2, rate 0.1-10
+  { id: 'taiyizhenren', label: '太乙真人', tag: '仙侠·男', gender: 'male', color: '#6c5ce7', pitch: 0.8, rate: 0.85, sample: '仙路漫漫，且看我韩立如何逆天改命！' },
+  { id: 'yunlong',      label: '云龙大侠', tag: '武侠·男', gender: 'male', color: '#0984e3', pitch: 0.75, rate: 0.9,  sample: '江湖路远，侠义长存，大丈夫当如此！' },
+  { id: 'yingxiong',    label: '英雄少年', tag: '热血·男', gender: 'male', color: '#e17055', pitch: 1.1, rate: 1.15, sample: '我绝不放弃，哪怕前路荆棘，也要一往无前！' },
+  { id: 'shenshi',      label: '绅士先生', tag: '优雅·男', gender: 'male', color: '#00b894', pitch: 0.95, rate: 0.95, sample: '你好，很高兴认识你，请多关照。' },
+  { id: 'chenwen',      label: '沉稳大叔', tag: '醇厚·男', gender: 'male', color: '#636e72', pitch: 0.65, rate: 0.8,  sample: '年轻人，凡事莫急，稳住，我们能赢。' },
+  { id: 'shaonian',     label: '阳光少年', tag: '青春·男', gender: 'male', color: '#fdcb6e', pitch: 1.2, rate: 1.1,  sample: '哎！今天天气真好，我们一起去打球吧！' },
   // 女声
-  { id: 'xianzi',       label: '仙子空灵', tag: '仙侠·女', gender: 'female', color: '#a29bfe' },
-  { id: 'gongzhu',      label: '宫主霸气', tag: '宫廷·女', gender: 'female', color: '#fd79a8' },
-  { id: 'tianmei',      label: '甜美少女', tag: '活泼·女', gender: 'female', color: '#e84393' },
-  { id: 'yujie',        label: '御姐冷艳', tag: '冷艳·女', gender: 'female', color: '#6c5ce7' },
-  { id: 'zhixing',      label: '知性温柔', tag: '都市·女', gender: 'female', color: '#00cec9' },
-  { id: 'qingchun',     label: '青春校园', tag: '元气·女', gender: 'female', color: '#55efc4' },
+  { id: 'xianzi',       label: '仙子空灵', tag: '仙侠·女', gender: 'female', color: '#a29bfe', pitch: 1.5, rate: 0.85, sample: '缘起缘灭，皆是天意，你我相遇，便是注定。' },
+  { id: 'gongzhu',      label: '宫主霸气', tag: '宫廷·女', gender: 'female', color: '#fd79a8', pitch: 1.1, rate: 0.9,  sample: '本宫的地盘，没有人可以撒野，给我拿下！' },
+  { id: 'tianmei',      label: '甜美少女', tag: '活泼·女', gender: 'female', color: '#e84393', pitch: 1.7, rate: 1.1,  sample: '哇，这里好漂亮哦！我好开心，谢谢你带我来！' },
+  { id: 'yujie',        label: '御姐冷艳', tag: '冷艳·女', gender: 'female', color: '#6c5ce7', pitch: 0.9, rate: 0.88, sample: '不必多言，你的心意我明白，但这条路你走不通。' },
+  { id: 'zhixing',      label: '知性温柔', tag: '都市·女', gender: 'female', color: '#00cec9', pitch: 1.25, rate: 0.95, sample: '生活不止眼前的苟且，还有诗和远方的田野。' },
+  { id: 'qingchun',     label: '青春校园', tag: '元气·女', gender: 'female', color: '#55efc4', pitch: 1.6, rate: 1.05, sample: '加油加油！我们班一定能赢，相信自己！' },
 ];
+
+/* ─── Web Speech API TTS 工具 ─── */
+function speakText(text, voiceId, rate = 1, onEnd) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const cfg = VOICES.find(v => v.id === voiceId) || VOICES[0];
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'zh-CN';
+  utter.pitch = cfg.pitch ?? 1;
+  utter.rate = (cfg.rate ?? 1) * rate;
+  // 优先选中文声音
+  const voices = window.speechSynthesis.getVoices();
+  const zhVoice = voices.find(v => /zh[-_]CN/i.test(v.lang) && (cfg.gender === 'female' ? /female|woman/i.test(v.name) || v.name.includes('Ting-Ting') || v.name.includes('Mei-Jia') || v.name.includes('Xiaoyan') : /male|man/i.test(v.name) || v.name.includes('Yunyang') || v.name.includes('Kangkang')))
+    || voices.find(v => /zh[-_]CN/i.test(v.lang))
+    || voices.find(v => /zh/i.test(v.lang));
+  if (zhVoice) utter.voice = zhVoice;
+  if (onEnd) utter.onend = onEnd;
+  window.speechSynthesis.speak(utter);
+}
 
 const BG_MUSIC = [
   { id: 'none',      label: '无',         icon: '🔇' },
@@ -287,6 +306,8 @@ function ProjectWorkspace({ project, onBack }) {
   const [speechRate, setSpeechRate] = useState(1);
   const [bgMusic, setBgMusic] = useState('none');
   const [animEffect, setAnimEffect] = useState('none');
+  const [playingVoice, setPlayingVoice] = useState(null); // voiceId being previewed
+  const [boardPlaying, setBoardPlaying] = useState(null); // boardId being spoken
 
   // 持久化到 localStorage
   useEffect(() => {
@@ -727,7 +748,22 @@ function ProjectWorkspace({ project, onBack }) {
                       <div style={{ fontSize: 12, fontWeight: voice === v.id ? 700 : 400, color: voice === v.id ? v.color : 'var(--text)' }}>{v.label}</div>
                       <div style={{ fontSize: 10, color: 'var(--muted)' }}>{v.tag}</div>
                     </div>
-                    {voice === v.id && <span style={{ fontSize: 11, color: v.color }}>✓</span>}
+                    {/* 试听按钮 */}
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        setVoice(v.id);
+                        if (playingVoice === v.id) {
+                          window.speechSynthesis?.cancel();
+                          setPlayingVoice(null);
+                        } else {
+                          setPlayingVoice(v.id);
+                          speakText(v.sample, v.id, speechRate, () => setPlayingVoice(null));
+                        }
+                      }}
+                      style={{ padding: '3px 8px', borderRadius: 10, border: `1px solid ${v.color}66`, background: playingVoice === v.id ? v.color : 'transparent', color: playingVoice === v.id ? '#fff' : v.color, fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .15s' }}>
+                      {playingVoice === v.id ? '⏹' : '▶ 试听'}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -792,6 +828,32 @@ function ProjectWorkspace({ project, onBack }) {
               </div>
             )}
 
+            {/* 分镜列表头部 */}
+            {boards.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>{boards.length} 个分镜</span>
+                <button
+                  onClick={() => {
+                    if (boardPlaying === 'all') {
+                      window.speechSynthesis?.cancel();
+                      setBoardPlaying(null);
+                    } else {
+                      setBoardPlaying('all');
+                      let idx = 0;
+                      const playNext = () => {
+                        if (idx >= boards.length) { setBoardPlaying(null); return; }
+                        const b = boards[idx++];
+                        speakText(b.dialog || b.scene, voice, speechRate, playNext);
+                      };
+                      playNext();
+                    }
+                  }}
+                  style={{ ...outlineBtn, fontSize: 12, padding: '5px 14px', color: boardPlaying === 'all' ? '#fff' : '#00d2b4', borderColor: '#00d2b444', background: boardPlaying === 'all' ? '#00d2b4' : 'transparent', transition: 'all .15s' }}>
+                  {boardPlaying === 'all' ? '⏹ 停止播放' : '▶ 全部试听'}
+                </button>
+              </div>
+            )}
+
             {/* 分镜列表 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '52vh', overflowY: 'auto', paddingRight: 4 }}>
               {boards.length > 0 ? boards.map((b, i) => (
@@ -816,7 +878,20 @@ function ProjectWorkspace({ project, onBack }) {
                   </div>
                   {/* 操作 */}
                   <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, justifyContent: 'center', borderLeft: '1px solid var(--border)' }}>
-                    <button style={{ ...outlineBtn, fontSize: 11, padding: '5px 10px', color: '#00d2b4', borderColor: '#00d2b444', whiteSpace: 'nowrap' }}>🎙 生成配音</button>
+                    <button
+                      onClick={() => {
+                        if (boardPlaying === b.id) {
+                          window.speechSynthesis?.cancel();
+                          setBoardPlaying(null);
+                        } else {
+                          setBoardPlaying(b.id);
+                          const text = b.dialog || b.scene;
+                          speakText(text, voice, speechRate, () => setBoardPlaying(null));
+                        }
+                      }}
+                      style={{ ...outlineBtn, fontSize: 11, padding: '5px 10px', color: boardPlaying === b.id ? '#fff' : '#00d2b4', borderColor: '#00d2b444', background: boardPlaying === b.id ? '#00d2b4' : 'transparent', whiteSpace: 'nowrap', transition: 'all .15s' }}>
+                      {boardPlaying === b.id ? '⏹ 停止' : '🎙 生成配音'}
+                    </button>
                     <button style={{ ...outlineBtn, fontSize: 11, padding: '5px 10px', whiteSpace: 'nowrap' }}>🖼 选择图片</button>
                   </div>
                 </div>
@@ -834,8 +909,8 @@ function ProjectWorkspace({ project, onBack }) {
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setStep(1)} style={outlineBtn}>← 返回</button>
-              <button className="btn-primary" onClick={() => setStep(3)} style={{ flex: 1, background: 'linear-gradient(90deg,#00d2b4,#6c5ce7)' }}>
+              <button onClick={() => { window.speechSynthesis?.cancel(); setStep(1); }} style={outlineBtn}>← 返回</button>
+              <button className="btn-primary" onClick={() => { window.speechSynthesis?.cancel(); setStep(3); }} style={{ flex: 1, background: 'linear-gradient(90deg,#00d2b4,#6c5ce7)' }}>
                 完成 · 合成导出 →
               </button>
             </div>
