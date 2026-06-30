@@ -95,6 +95,44 @@ const CHAR_LIBRARY = [
 
 const EMPTY_CHAR = { id: null, name: '', gender: 'female', age: '', identity: '', height: '', weight: '', eyeColor: '', hairColor: '', desc: '', traits: '', img: null };
 
+const VOICES = [
+  // 男声
+  { id: 'taiyizhenren', label: '太乙真人', tag: '仙侠·男', gender: 'male', color: '#6c5ce7' },
+  { id: 'yunlong',      label: '云龙大侠', tag: '武侠·男', gender: 'male', color: '#0984e3' },
+  { id: 'yingxiong',    label: '英雄少年', tag: '热血·男', gender: 'male', color: '#e17055' },
+  { id: 'shenshi',      label: '绅士先生', tag: '优雅·男', gender: 'male', color: '#00b894' },
+  { id: 'chenwen',      label: '沉稳大叔', tag: '醇厚·男', gender: 'male', color: '#636e72' },
+  { id: 'shaonian',     label: '阳光少年', tag: '青春·男', gender: 'male', color: '#fdcb6e' },
+  // 女声
+  { id: 'xianzi',       label: '仙子空灵', tag: '仙侠·女', gender: 'female', color: '#a29bfe' },
+  { id: 'gongzhu',      label: '宫主霸气', tag: '宫廷·女', gender: 'female', color: '#fd79a8' },
+  { id: 'tianmei',      label: '甜美少女', tag: '活泼·女', gender: 'female', color: '#e84393' },
+  { id: 'yujie',        label: '御姐冷艳', tag: '冷艳·女', gender: 'female', color: '#6c5ce7' },
+  { id: 'zhixing',      label: '知性温柔', tag: '都市·女', gender: 'female', color: '#00cec9' },
+  { id: 'qingchun',     label: '青春校园', tag: '元气·女', gender: 'female', color: '#55efc4' },
+];
+
+const BG_MUSIC = [
+  { id: 'none',      label: '无',         icon: '🔇' },
+  { id: 'guzheng',   label: '古筝悠扬',   icon: '🎵', tag: '仙侠风' },
+  { id: 'zhangu',    label: '战鼓激昂',   icon: '🥁', tag: '战斗场景' },
+  { id: 'piano',     label: '钢琴轻柔',   icon: '🎹', tag: '温情场景' },
+  { id: 'electronic',label: '电子节拍',   icon: '🎧', tag: '都市风' },
+  { id: 'pipa',      label: '琵琶声声',   icon: '🎶', tag: '古风' },
+  { id: 'xiao',      label: '箫声空灵',   icon: '🌬️', tag: '悲情' },
+  { id: 'xianle',    label: '弦乐磅礴',   icon: '🎻', tag: '史诗感' },
+  { id: 'guitar',    label: '吉他清音',   icon: '🎸', tag: '青春校园' },
+];
+
+const ANIM_EFFECTS = [
+  { id: 'none',   label: '无' },
+  { id: 'zoom',   label: '缓慢推进' },
+  { id: 'shake',  label: '镜头抖动' },
+  { id: 'left',   label: '左移扫场' },
+  { id: 'right',  label: '右移扫场' },
+  { id: 'fadein', label: '淡入淡出' },
+];
+
 const TOOL_LINKS = [
   { label: 'Leonardo AI', sub: '角色图生成', url: 'https://leonardo.ai', color: '#6c5ce7' },
   { label: '即梦 AI', sub: '图转视频·字节出品', url: 'https://jimeng.jianying.com', color: '#0984e3' },
@@ -244,6 +282,11 @@ function ProjectWorkspace({ project, onBack }) {
   const uploadRef = useRef(null);
   const [generating, setGenerating] = useState(false);
   const [loadingScript, setLoadingScript] = useState(false);
+  // 生图/配音设置
+  const [voice, setVoice] = useState('taiyizhenren');
+  const [speechRate, setSpeechRate] = useState(1);
+  const [bgMusic, setBgMusic] = useState('none');
+  const [animEffect, setAnimEffect] = useState('none');
 
   // 持久化到 localStorage
   useEffect(() => {
@@ -653,52 +696,149 @@ function ProjectWorkspace({ project, onBack }) {
 
       {/* ══ Step 2：生图 ══ */}
       {step === 2 && (
-        <div style={{ maxWidth: 760 }}>
-          <div className="tool-card" style={{ marginBottom: 16 }}>
-            <h3 style={{ marginTop: 0 }}>生成角色图</h3>
-            <p style={{ color: 'var(--muted)', fontSize: 13 }}>使用以下工具为每个分镜生成对应画面，注意保持角色一致性</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20 }}>
 
-            {/* 角色提示词 */}
+          {/* ─ 左侧设置面板 ─ */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            {/* 语速 */}
+            <div style={{ background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)', padding: 14 }}>
+              <label style={{ ...labelStyle, fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>语速</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input type="range" min={0.5} max={2} step={0.1} value={speechRate}
+                  onChange={e => setSpeechRate(Number(e.target.value))}
+                  style={{ flex: 1, accentColor: '#00d2b4' }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#00d2b4', minWidth: 28, textAlign: 'right' }}>{speechRate}x</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>
+                <span>慢</span><span>正常</span><span>快</span>
+              </div>
+            </div>
+
+            {/* 声音选择 */}
+            <div style={{ background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)', padding: 14 }}>
+              <label style={{ ...labelStyle, fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>声音</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+                {VOICES.map(v => (
+                  <div key={v.id} onClick={() => setVoice(v.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', border: `1px solid ${voice === v.id ? v.color : 'var(--border)'}`, background: voice === v.id ? `${v.color}18` : 'var(--bg)', transition: 'all .15s' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: v.color, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: voice === v.id ? 700 : 400, color: voice === v.id ? v.color : 'var(--text)' }}>{v.label}</div>
+                      <div style={{ fontSize: 10, color: 'var(--muted)' }}>{v.tag}</div>
+                    </div>
+                    {voice === v.id && <span style={{ fontSize: 11, color: v.color }}>✓</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 动画效果 */}
+            <div style={{ background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)', padding: 14 }}>
+              <label style={{ ...labelStyle, fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>默认动画</label>
+              <select value={animEffect} onChange={e => setAnimEffect(e.target.value)} style={inputStyle}>
+                {ANIM_EFFECTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
+              </select>
+            </div>
+
+            {/* 背景音乐 */}
+            <div style={{ background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)', padding: 14 }}>
+              <label style={{ ...labelStyle, fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>背景音乐</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {BG_MUSIC.map(m => (
+                  <div key={m.id} onClick={() => setBgMusic(m.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, cursor: 'pointer', border: `1px solid ${bgMusic === m.id ? '#00d2b4' : 'var(--border)'}`, background: bgMusic === m.id ? '#00d2b418' : 'var(--bg)', transition: 'all .15s' }}>
+                    <span style={{ fontSize: 14 }}>{m.icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: 12, fontWeight: bgMusic === m.id ? 700 : 400, color: bgMusic === m.id ? '#00d2b4' : 'var(--text)' }}>{m.label}</span>
+                      {m.tag && <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 6 }}>{m.tag}</span>}
+                    </div>
+                    {bgMusic === m.id && <span style={{ fontSize: 11, color: '#00d2b4' }}>✓</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ─ 右侧主内容 ─ */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* 当前配置摘要 */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              {(() => {
+                const v = VOICES.find(v => v.id === voice);
+                const m = BG_MUSIC.find(m => m.id === bgMusic);
+                const a = ANIM_EFFECTS.find(a => a.id === animEffect);
+                return <>
+                  <span style={{ fontSize: 12, padding: '4px 12px', borderRadius: 20, background: `${v?.color}22`, color: v?.color, border: `1px solid ${v?.color}44` }}>🎙 {v?.label} · {speechRate}x</span>
+                  <span style={{ fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#00d2b422', color: '#00d2b4', border: '1px solid #00d2b444' }}>{m?.icon} {m?.label}</span>
+                  {animEffect !== 'none' && <span style={{ fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#6c5ce722', color: '#6c5ce7', border: '1px solid #6c5ce744' }}>🎬 {a?.label}</span>}
+                </>;
+              })()}
+            </div>
+
+            {/* 角色卡 */}
             {chars.some(c => c.name) && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 10 }}>
                 {chars.map((c, i) => c.name && (
-                  <div key={i} style={{ padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    {c.img && <img src={c.img} alt={c.name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
+                  <div key={i} style={{ display: 'flex', gap: 10, padding: 12, borderRadius: 10, background: 'var(--card)', border: `1px solid ${i === 0 ? '#00d2b444' : '#e1705544'}`, alignItems: 'center' }}>
+                    {c.img && <img src={c.img} alt={c.name} style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
                     <div>
-                      <div style={{ fontSize: 12, color: i === 0 ? '#00d2b4' : '#e17055', fontWeight: 600, marginBottom: 2 }}>{c.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>{[c.gender === 'male' ? '男' : '女', c.age && `${c.age}岁`, c.identity, c.hairColor && `${c.hairColor}发`, c.eyeColor && `${c.eyeColor}眼`].filter(Boolean).join(' · ')}</div>
-                      {c.desc && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{c.desc}</div>}
+                      <div style={{ fontSize: 12, color: i === 0 ? '#00d2b4' : '#e17055', fontWeight: 700 }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>{[c.gender === 'male' ? '男' : '女', c.identity].filter(Boolean).join(' · ')}</div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {[
-                { name: 'Leonardo AI', tag: '推荐免费', url: 'https://leonardo.ai', color: '#6c5ce7', tip: '每日150积分，用 Character Reference 保持角色一致' },
-                { name: '即梦 AI', tag: '国产免费', url: 'https://jimeng.jianying.com', color: '#0984e3', tip: '字节出品，免费额度多，可直接图转视频' },
-                { name: '海螺 AI', tag: '口型同步', url: 'https://hailuoai.com', color: '#00b894', tip: '支持嘴型同步，对话漫剧效果好' },
-                { name: 'Midjourney', tag: '质量最高', url: 'https://midjourney.com', color: '#e17055', tip: '用 --cref 固定角色，付费订阅' },
-              ].map(p => (
-                <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block', padding: 14, borderRadius: 10, border: `1px solid ${p.color}44`, background: `${p.color}11`, color: 'var(--text)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</span>
-                    <span style={{ fontSize: 11, background: p.color, color: '#fff', borderRadius: 4, padding: '2px 7px' }}>{p.tag}</span>
+            {/* 分镜列表 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '52vh', overflowY: 'auto', paddingRight: 4 }}>
+              {boards.length > 0 ? boards.map((b, i) => (
+                <div key={b.id} style={{ background: 'var(--card)', borderRadius: 10, border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '110px 1fr auto', gap: 0, overflow: 'hidden', minHeight: 90 }}>
+                  {/* 缩略图占位 */}
+                  <div style={{ background: 'linear-gradient(135deg,#1a1a2e,#2d1066)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', position: 'relative' }}>
+                    <div style={{ fontSize: 20 }}>🖼</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.5)' }}>生成章节图</div>
+                    <div style={{ position: 'absolute', top: 4, left: 6, fontSize: 10, color: 'rgba(255,255,255,.4)', fontWeight: 700 }}>#{i + 1}</div>
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{p.tip}</div>
-                </a>
-              ))}
+                  {/* 台词 */}
+                  <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#00d2b4', fontWeight: 600, marginBottom: 4 }}>{b.role}{b.action ? `（${b.action}）` : ''}</div>
+                      <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>"{b.dialog}"</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                      <span style={{ fontSize: 10, color: 'var(--muted)' }}>旁白</span>
+                      <span style={{ fontSize: 11, color: 'var(--muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.scene}</span>
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: '#00d2b418', color: '#00d2b4', border: '1px solid #00d2b433' }}>配音未生成</span>
+                    </div>
+                  </div>
+                  {/* 操作 */}
+                  <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, justifyContent: 'center', borderLeft: '1px solid var(--border)' }}>
+                    <button style={{ ...outlineBtn, fontSize: 11, padding: '5px 10px', color: '#00d2b4', borderColor: '#00d2b444', whiteSpace: 'nowrap' }}>🎙 生成配音</button>
+                    <button style={{ ...outlineBtn, fontSize: 11, padding: '5px 10px', whiteSpace: 'nowrap' }}>🖼 选择图片</button>
+                  </div>
+                </div>
+              )) : (
+                <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', background: 'var(--card)', borderRadius: 10, border: '1px dashed var(--border)' }}>
+                  暂无分镜，请返回剧本步骤拆解分镜
+                </div>
+              )}
             </div>
 
-            <div style={{ marginTop: 14, padding: 12, background: 'var(--bg)', borderRadius: 8, fontSize: 13, color: 'var(--muted)', border: '1px dashed var(--border)' }}>
-              💡 生成完成后，将图片上传到 即梦/海螺 转成3-5秒视频片段，再回到合成步骤
+            {/* 底部工具提示 */}
+            <div style={{ padding: 12, background: 'var(--card)', borderRadius: 10, border: '1px dashed var(--border)', fontSize: 12, color: 'var(--muted)', lineHeight: 1.8 }}>
+              💡 <b>推荐工作流：</b>
+              Leonardo AI / 即梦 生成角色图 →「选择图片」上传 → 海螺AI 图转视频 →「生成配音」合成语音 → 下一步合成导出
             </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => setStep(1)} style={outlineBtn}>← 返回</button>
-            <button className="btn-primary" onClick={() => setStep(3)} style={{ flex: 1 }}>完成 →</button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setStep(1)} style={outlineBtn}>← 返回</button>
+              <button className="btn-primary" onClick={() => setStep(3)} style={{ flex: 1, background: 'linear-gradient(90deg,#00d2b4,#6c5ce7)' }}>
+                完成 · 合成导出 →
+              </button>
+            </div>
           </div>
         </div>
       )}
