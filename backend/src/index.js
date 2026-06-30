@@ -10,6 +10,7 @@ import aiRouter from './routes/ai.js';
 import telegramRouter from './routes/telegram.js';
 import clipsRouter from './routes/clips.js';
 import socialRouter from './routes/social.js';
+import comicRouter from './routes/comic.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -43,6 +44,7 @@ app.use('/api/ai', requireAuth, aiRouter);
 app.use('/api/telegram', requireAuth, telegramRouter);
 app.use('/api/clips', requireAuth, clipsRouter);
 app.use('/api/social', requireAuth, socialRouter);
+app.use('/api/comic', requireAuth, comicRouter);
 
 // 本地用 BACKEND_PORT(避开被注入的 PORT);Render 等平台注入 PORT,回退到它
 const PORT = process.env.BACKEND_PORT || process.env.PORT || 4000;

@@ -7,6 +7,7 @@ const TOOLS = [
   { key: 'community', icon: '💬', tint: '#e7f6ec', color: '#16a34a', title: '社群管理', desc: '管理 TG 社群内容发布', to: '/community' },
   { key: 'social', icon: '➤', tint: '#e8effe', color: '#3b6fe0', title: '社媒管理', desc: 'AI 推特文案生成器 · 关键词→文案', to: '/social' },
   { key: 'meeting', icon: '🎥', tint: '#f3eafe', color: '#8b5cf6', title: 'Agent 会议室', desc: 'Fathom 会议 · AI 跟会记录 · 纪要导出 Word/PDF', to: '/meeting' },
+  { key: 'comic', icon: '🎭', tint: '#2d106622', color: '#a855f7', title: '漫剧生产', desc: 'AI 剧本 · 分镜 · 角色图 · 图转视频 · 一站式流程', to: '/comic' },
 ];
 
 function greeting() {
