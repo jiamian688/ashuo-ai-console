@@ -113,6 +113,22 @@ const VOICES = [
 ];
 
 /* ─── Web Speech API TTS 工具 ─── */
+// 已知 macOS/Chrome 中文男声关键词
+const MALE_VOICE_KEYS = ['li-mu', 'grandpa', 'reed', 'rocko', 'eddy', 'yunyang', 'kangkang', 'male', 'man'];
+// 已知 macOS/Chrome 中文女声关键词
+const FEMALE_VOICE_KEYS = ['婷婷', '语舒', '善怡', '美嘉', 'grandma', 'sandy', 'shelley', 'flo', 'mei-jia', 'ting-ting', 'female', 'woman', 'xiaoyan'];
+
+function pickZhVoice(gender) {
+  const all = window.speechSynthesis?.getVoices() || [];
+  const zh = all.filter(v => /zh/i.test(v.lang));
+  if (!zh.length) return null;
+
+  const keys = gender === 'male' ? MALE_VOICE_KEYS : FEMALE_VOICE_KEYS;
+  const match = zh.find(v => keys.some(k => v.name.toLowerCase().includes(k)));
+  // 如果性别匹配失败，回退到任意中文声音
+  return match || zh.find(v => /zh[-_]CN/i.test(v.lang)) || zh[0];
+}
+
 function speakText(text, voiceId, rate = 1, onEnd) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
@@ -121,14 +137,20 @@ function speakText(text, voiceId, rate = 1, onEnd) {
   utter.lang = 'zh-CN';
   utter.pitch = cfg.pitch ?? 1;
   utter.rate = (cfg.rate ?? 1) * rate;
-  // 优先选中文声音
-  const voices = window.speechSynthesis.getVoices();
-  const zhVoice = voices.find(v => /zh[-_]CN/i.test(v.lang) && (cfg.gender === 'female' ? /female|woman/i.test(v.name) || v.name.includes('Ting-Ting') || v.name.includes('Mei-Jia') || v.name.includes('Xiaoyan') : /male|man/i.test(v.name) || v.name.includes('Yunyang') || v.name.includes('Kangkang')))
-    || voices.find(v => /zh[-_]CN/i.test(v.lang))
-    || voices.find(v => /zh/i.test(v.lang));
-  if (zhVoice) utter.voice = zhVoice;
-  if (onEnd) utter.onend = onEnd;
-  window.speechSynthesis.speak(utter);
+
+  // 声音列表可能是异步加载的，等一帧再赋值
+  const assignAndSpeak = () => {
+    const chosen = pickZhVoice(cfg.gender);
+    if (chosen) utter.voice = chosen;
+    if (onEnd) utter.onend = onEnd;
+    window.speechSynthesis.speak(utter);
+  };
+
+  if (window.speechSynthesis.getVoices().length > 0) {
+    assignAndSpeak();
+  } else {
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; assignAndSpeak(); };
+  }
 }
 
 const BG_MUSIC = [
