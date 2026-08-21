@@ -66,6 +66,7 @@ button { font-family: inherit; cursor: pointer; }
 .nav .spacer { flex: 1; }
 .nav .nav-item { color: var(--text-soft); font-size: 14px; }
 .nav .nav-item:hover { color: var(--text); }
+.nav .nav-clock { font-variant-numeric: tabular-nums; color: var(--text-faint); }
 .nav .icon-btn {
   background: none;
   border: none;

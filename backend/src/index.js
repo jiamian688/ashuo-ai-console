@@ -13,6 +13,7 @@ import socialRouter from './routes/social.js';
 import comicRouter from './routes/comic.js';
 import commentReviewRouter from './routes/commentReview.js';
 import businessDataRouter from './routes/businessData.js';
+import usersRouter from './routes/users.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -37,8 +38,14 @@ function requireAuth(req, res, next) {
   }
 }
 
+function requireAdmin(req, res, next) {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: '需要管理员权限' });
+  next();
+}
+
 app.get('/api/health', (req, res) => res.json({ ok: true, service: 'yule-agentcenter' }));
 app.use('/api/auth', authRouter);
+app.get('/api/auth/me', requireAuth, (req, res) => res.json(req.user));
 
 app.use('/api/tasks', requireAuth, tasksRouter);
 app.use('/api/todos', requireAuth, todosRouter);
@@ -49,6 +56,7 @@ app.use('/api/social', requireAuth, socialRouter);
 app.use('/api/comic', requireAuth, comicRouter);
 app.use('/api/comment-review', requireAuth, commentReviewRouter);
 app.use('/api/business-data', requireAuth, businessDataRouter);
+app.use('/api/users', requireAuth, requireAdmin, usersRouter);
 
 // 本地用 BACKEND_PORT(避开被注入的 PORT);Render 等平台注入 PORT,回退到它
 const PORT = process.env.BACKEND_PORT || process.env.PORT || 4000;

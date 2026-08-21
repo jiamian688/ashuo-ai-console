@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { hashPassword } from './services/password.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const db = new Database(path.join(__dirname, '..', 'data.db'));
@@ -27,7 +28,26 @@ db.exec(`
     done INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    nickname TEXT,
+    is_admin INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
+
+// 首次启动时,把老的单密码登录(APP_PASSWORD)迁移成一个管理员账号,保证升级后原来的口令还能登录。
+const userCount = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
+if (userCount === 0) {
+  const { hash, salt } = hashPassword(process.env.APP_PASSWORD || 'admin');
+  db.prepare(
+    'INSERT INTO users (username, password_hash, salt, nickname, is_admin) VALUES (?, ?, ?, ?, 1)'
+  ).run('xiangtang', hash, salt, 'xiangtang');
+}
 
 // 轻量迁移:给老库补上后加的列(CREATE TABLE IF NOT EXISTS 不会给已存在的表加列)
 for (const [col, def] of [

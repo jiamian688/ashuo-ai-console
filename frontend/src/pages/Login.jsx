@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, setToken } from '../api/client.js';
+import { api, setToken, setUser } from '../api/client.js';
 
 export default function Login() {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,8 +14,9 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const { token } = await api.login(password, 'sishuo');
+      const { token, username: u, nickname, isAdmin } = await api.login(username.trim(), password);
       setToken(token);
+      setUser({ username: u, nickname, isAdmin });
       navigate('/');
     } catch (err) {
       setError(err.message);
@@ -27,14 +29,21 @@ export default function Login() {
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
         <h1>ashuo-ai-console<span className="badge">V2.0</span></h1>
-        <p>内容运营私人工作台 · 请输入访问口令</p>
+        <p>内容运营私人工作台 · 请输入账号密码</p>
+        <input
+          className="text-input"
+          type="text"
+          placeholder="账号"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoFocus
+        />
         <input
           className="text-input"
           type="password"
-          placeholder="访问口令(默认 admin)"
+          placeholder="密码"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoFocus
         />
         <button className="btn-primary" disabled={loading}>
           {loading ? '登录中…' : '进入工作台'}

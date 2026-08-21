@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { api, getUser } from '../api/client.js';
 
 const TOOLS = [
   { key: 'clips', icon: '🖼', tint: '#eef0fb', color: '#6c5ce7', title: '剪辑管理', desc: '视频剪辑和封面图生成', to: '/clips' },
@@ -97,6 +97,7 @@ export default function Dashboard() {
   };
 
   const today = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' });
+  const user = getUser();
 
   return (
     <div className="page">
@@ -104,7 +105,7 @@ export default function Dashboard() {
         <div className="status"><span className="dot" /> 服务运行中</div>
         <div className="hero-body">
           <div className="hero-left">
-            <h1>{greeting()}，<span className="name">xiangtang</span></h1>
+            <h1>{greeting()}，<span className="name">{user?.nickname || user?.username || '你'}</span></h1>
             <div className="sub">{today} · 你的私人工作台 · 仅显示你的任务</div>
             <div className="token-pill">🌗 今日团队 <b>{fmtTok(stats.tokensTeam)}</b> token · <b>{fmtUsd(stats.costTeam)}</b> · 你 {fmtTok(stats.tokensYou)} / {fmtUsd(stats.costYou)}</div>
           </div>

@@ -1,4 +1,5 @@
 const TOKEN_KEY = 'yule_token';
+const USER_KEY = 'yule_user';
 // 生产环境把请求指向独立部署的后端;本地为空,走 vite 代理
 const BASE = import.meta.env.VITE_API_BASE || '';
 
@@ -10,6 +11,13 @@ export function setToken(t) {
 }
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+export function getUser() {
+  try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); } catch { return null; }
+}
+export function setUser(u) {
+  localStorage.setItem(USER_KEY, JSON.stringify(u));
 }
 
 async function request(path, options = {}) {
@@ -30,8 +38,14 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  login: (password, username) =>
-    request('/auth/login', { method: 'POST', body: JSON.stringify({ password, username }) }),
+  login: (username, password) =>
+    request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  listUsers: () => request('/users'),
+  createUser: (username, password, nickname) =>
+    request('/users', { method: 'POST', body: JSON.stringify({ username, password, nickname }) }),
+  resetUserPassword: (id, password) =>
+    request(`/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ password }) }),
+  deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
   stats: () => request('/tasks/stats'),
   listTasks: () => request('/tasks'),
   // 用 XHR 上传:fetch 无法回报上传进度,XHR 的 upload.onprogress 可以。

@@ -1,12 +1,27 @@
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { clearToken } from '../api/client.js';
+import { clearToken, getUser } from '../api/client.js';
+
+function useClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return now;
+}
 
 export default function Nav({ crumb, theme, onToggleTheme }) {
   const navigate = useNavigate();
+  const user = getUser();
+  const now = useClock();
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   const logout = () => {
     clearToken();
     navigate('/login');
   };
+
   return (
     <header className="nav">
       <Link to="/" className="brand">
@@ -19,11 +34,12 @@ export default function Nav({ crumb, theme, onToggleTheme }) {
         </div>
       )}
       <div className="spacer" />
-      <span className="nav-item">xiangtang</span>
+      <span className="nav-item nav-clock" title={tz}>{now.toLocaleTimeString('zh-CN', { hour12: false })}</span>
+      <span className="nav-item">{user?.nickname || user?.username || '未登录'}</span>
       <button className="icon-btn" onClick={onToggleTheme} title="切换主题">
         {theme === 'dark' ? '☀' : '☾'}
       </button>
-      <Link to="/" className="nav-item">管理</Link>
+      {user?.isAdmin && <Link to="/admin" className="nav-item">管理</Link>}
       <button className="nav-item icon-btn" onClick={logout}>退出</button>
     </header>
   );
