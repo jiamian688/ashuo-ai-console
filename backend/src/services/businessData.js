@@ -41,3 +41,9 @@ export async function listDailyReports({ limit = 30 } = {}) {
   const list = (data.data || []).map(normalize);
   return { list, total: data.count || 0 };
 }
+
+// 后台首页「今日关键指标」,格式是现成的 [{name, number}] 中文展示对,原样透传即可。
+export async function getTodayStats() {
+  const data = await adminCall('/admin/login/welcome');
+  return data.data || [];
+}

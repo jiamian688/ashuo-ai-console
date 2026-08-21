@@ -55,16 +55,23 @@ function TodoPanel({ title, bucket, items, onAdd, onToggle, onDelete, placeholde
   );
 }
 
+const TODAY_STAT_NAMES = ['今日活跃', '今日注册', '今日VIP充值', '今日金币充值', '今日总充值', '今日充值成功率', '新用户订单'];
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ done: 0, queued: 0, failed: 0, xAccounts: 0, tokensTeam: 0, costTeam: 0, tokensYou: 0, costYou: 0 });
   const [todos, setTodos] = useState([]);
+  const [todayStats, setTodayStats] = useState([]);
 
   const loadStats = () => api.stats().then(setStats).catch(() => {});
   const loadTodos = () => api.listTodos().then(setTodos).catch(() => {});
+  const loadTodayStats = () => api.todayHomeStats()
+    .then((d) => setTodayStats((d.stats || []).filter((s) => TODAY_STAT_NAMES.includes(s.name))))
+    .catch(() => {});
   useEffect(() => {
     loadStats();
     loadTodos();
+    loadTodayStats();
   }, []);
 
   const addTodo = async (content, bucket) => {
@@ -89,6 +96,16 @@ export default function Dashboard() {
         <h1>{greeting()}，<span className="name">xiangtang</span></h1>
         <div className="sub">{today} · 你的私人工作台 · 仅显示你的任务</div>
         <div className="token-pill">🌗 今日团队 <b>{fmtTok(stats.tokensTeam)}</b> token · <b>{fmtUsd(stats.costTeam)}</b> · 你 {fmtTok(stats.tokensYou)} / {fmtUsd(stats.costYou)}</div>
+        {todayStats.length > 0 && (
+          <div className="hero-today">
+            {todayStats.map((s) => (
+              <div key={s.name} className="hero-today-item">
+                <div className="hero-today-label">{s.name}</div>
+                <div className="hero-today-value">{s.number}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="stats">

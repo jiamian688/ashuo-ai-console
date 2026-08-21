@@ -95,6 +95,7 @@ button { font-family: inherit; cursor: pointer; }
   padding: 22px 26px;
   position: relative;
   overflow: hidden;
+  min-height: 190px;
 }
 [data-theme='dark'] .hero {
   background: linear-gradient(120deg, #1c1936 0%, #181a22 55%, #2a1822 100%);
@@ -128,6 +129,22 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 13px;
   color: var(--text-soft);
 }
+.hero-today {
+  position: absolute;
+  top: 62px;
+  right: 26px;
+  width: min(46%, 460px);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.hero-today-item { min-width: 0; }
+.hero-today-label { font-size: 11px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero-today-value { font-size: 16px; font-weight: 700; color: var(--text); margin-top: 2px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
 
 /* ---------- stat cards ---------- */

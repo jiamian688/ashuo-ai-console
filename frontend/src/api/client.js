@@ -93,6 +93,7 @@ export const api = {
   rejectComments: (source, ids, reason) => request('/comment-review/reject-batch', { method: 'POST', body: JSON.stringify({ source, ids, reason }) }),
   businessDataStatus: () => request('/business-data/status'),
   listDailyBusinessData: (limit = 30) => request(`/business-data/daily?limit=${limit}`),
+  todayHomeStats: () => request('/business-data/today'),
 };
 
 // 把后端返回的 /files/... 相对路径拼成可访问地址(生产环境加后端基址）
