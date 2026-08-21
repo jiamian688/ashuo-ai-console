@@ -9,6 +9,7 @@ const TOOLS = [
   { key: 'meeting', icon: '🎥', tint: '#f3eafe', color: '#8b5cf6', title: 'Agent 会议室', desc: 'Fathom 会议 · AI 跟会记录 · 纪要导出 Word/PDF', to: '/meeting' },
   { key: 'comic', icon: '🎭', tint: '#2d106622', color: '#a855f7', title: '漫剧生产', desc: 'AI 剧本 · 分镜 · 角色图 · 图转视频 · 一站式流程', to: '/comic' },
   { key: 'commentReview', icon: '🛡', tint: '#fdeef0', color: '#e0446c', title: '评论审核助手', desc: 'AI 审核视频/社区/黄游/书评评论 · 一键通过/拒绝', to: '/comment-review' },
+  { key: 'businessData', icon: '📊', tint: '#e8fbf3', color: '#0d9b6c', title: '经营数据看板', desc: '自动读取后台每日收入/注册/日活/留存数据', to: '/business-data' },
 ];
 
 function greeting() {

@@ -91,6 +91,8 @@ export const api = {
   passComments: (source, ids) => request('/comment-review/pass-batch', { method: 'POST', body: JSON.stringify({ source, ids }) }),
   rejectComment: (source, id, reason) => request('/comment-review/reject', { method: 'POST', body: JSON.stringify({ source, id, reason }) }),
   rejectComments: (source, ids, reason) => request('/comment-review/reject-batch', { method: 'POST', body: JSON.stringify({ source, ids, reason }) }),
+  businessDataStatus: () => request('/business-data/status'),
+  listDailyBusinessData: (limit = 30) => request(`/business-data/daily?limit=${limit}`),
 };
 
 // 把后端返回的 /files/... 相对路径拼成可访问地址(生产环境加后端基址）

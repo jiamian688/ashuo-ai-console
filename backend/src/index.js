@@ -12,6 +12,7 @@ import clipsRouter from './routes/clips.js';
 import socialRouter from './routes/social.js';
 import comicRouter from './routes/comic.js';
 import commentReviewRouter from './routes/commentReview.js';
+import businessDataRouter from './routes/businessData.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -47,6 +48,7 @@ app.use('/api/clips', requireAuth, clipsRouter);
 app.use('/api/social', requireAuth, socialRouter);
 app.use('/api/comic', requireAuth, comicRouter);
 app.use('/api/comment-review', requireAuth, commentReviewRouter);
+app.use('/api/business-data', requireAuth, businessDataRouter);
 
 // 本地用 BACKEND_PORT(避开被注入的 PORT);Render 等平台注入 PORT,回退到它
 const PORT = process.env.BACKEND_PORT || process.env.PORT || 4000;

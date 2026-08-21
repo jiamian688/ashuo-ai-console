@@ -1,7 +1,5 @@
 // 对接外部视频站(hanimepro)管理后台的评论审核接口。
-// 鉴权用管理后台自己的 Bearer token(在浏览器登录后从开发者工具里复制),
-// 存在 HANIME_ADMIN_TOKEN 里 —— 这是用户自己的会话凭证,后端只是原样转发,不做任何存储之外的处理。
-const BASE = process.env.HANIME_ADMIN_BASE_URL || 'https://sf-10-hanimepro-ht.zcxyprod.cc';
+import { adminConfigured, adminCall } from './adminClient.js';
 
 // 后台目前有 4 个评论模块。mv/post/porn 三个走「未审核→通过/拒绝」的审核队列;
 // book(书评)后台没有审核队列,评论发出即可见,唯一的管理手段是删除,所以拒绝=删除。
@@ -22,31 +20,8 @@ export function listSources() {
   return Object.entries(SOURCES).map(([key, v]) => ({ key, label: v.label, hasApprovalFlow: v.hasApprovalFlow }));
 }
 
-export function commentAdminConfigured() {
-  return Boolean(process.env.HANIME_ADMIN_TOKEN);
-}
-
-async function call(path, { method = 'GET', params, body } = {}) {
-  const token = process.env.HANIME_ADMIN_TOKEN;
-  if (!token) throw new Error('未配置评论审核后台 token(需在 backend/.env 填 HANIME_ADMIN_TOKEN)');
-
-  let url = `${BASE}${path}`;
-  if (params) {
-    const qs = new URLSearchParams(params).toString();
-    if (qs) url += `?${qs}`;
-  }
-  const resp = await fetch(url, {
-    method,
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${token}`,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (data.code !== 0) throw new Error(data.msg || `管理后台请求失败 (${resp.status})`);
-  return data;
-}
+export const commentAdminConfigured = adminConfigured;
+const call = adminCall;
 
 function normalize(sourceKey, cfg, raw) {
   return {
