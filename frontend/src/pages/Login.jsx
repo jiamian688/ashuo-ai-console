@@ -14,9 +14,9 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const { token, username: u, nickname, isAdmin } = await api.login(username.trim(), password);
+      const { token, username: u, nickname, isAdmin, tools } = await api.login(username.trim(), password);
       setToken(token);
-      setUser({ username: u, nickname, isAdmin });
+      setUser({ username: u, nickname, isAdmin, tools });
       navigate('/');
     } catch (err) {
       setError(err.message);

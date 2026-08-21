@@ -19,7 +19,9 @@ router.post('/login', (req, res) => {
     process.env.JWT_SECRET || 'dev-secret',
     { expiresIn: '7d' }
   );
-  res.json({ token, username: user.username, nickname: user.nickname || user.username, isAdmin: !!user.is_admin });
+  let tools = null;
+  try { tools = user.tools ? JSON.parse(user.tools) : null; } catch { tools = null; }
+  res.json({ token, username: user.username, nickname: user.nickname || user.username, isAdmin: !!user.is_admin, tools });
 });
 
 export default router;

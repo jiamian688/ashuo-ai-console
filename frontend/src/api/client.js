@@ -41,10 +41,12 @@ export const api = {
   login: (username, password) =>
     request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
   listUsers: () => request('/users'),
-  createUser: (username, password, nickname) =>
-    request('/users', { method: 'POST', body: JSON.stringify({ username, password, nickname }) }),
+  createUser: (username, password, nickname, tools) =>
+    request('/users', { method: 'POST', body: JSON.stringify({ username, password, nickname, tools }) }),
   resetUserPassword: (id, password) =>
     request(`/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ password }) }),
+  updateUserTools: (id, tools) =>
+    request(`/users/${id}/tools`, { method: 'POST', body: JSON.stringify({ tools }) }),
   deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
   stats: () => request('/tasks/stats'),
   listTasks: () => request('/tasks'),
