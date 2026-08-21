@@ -19,7 +19,7 @@ export default function Nav({ crumb, theme, onToggleTheme }) {
         </div>
       )}
       <div className="spacer" />
-      <span className="nav-item">sishuo</span>
+      <span className="nav-item">xiangtang</span>
       <button className="icon-btn" onClick={onToggleTheme} title="切换主题">
         {theme === 'dark' ? '☀' : '☾'}
       </button>

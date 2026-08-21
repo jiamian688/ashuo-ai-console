@@ -84,7 +84,7 @@ export default function Dashboard() {
     <div className="page">
       <section className="hero">
         <div className="status"><span className="dot" /> 服务运行中</div>
-        <h1>{greeting()}，<span className="name">sishuo</span></h1>
+        <h1>{greeting()}，<span className="name">xiangtang</span></h1>
         <div className="sub">{today} · 你的私人工作台 · 仅显示你的任务</div>
         <div className="token-pill">🌗 今日团队 <b>{fmtTok(stats.tokensTeam)}</b> token · <b>{fmtUsd(stats.costTeam)}</b> · 你 {fmtTok(stats.tokensYou)} / {fmtUsd(stats.costYou)}</div>
       </section>
