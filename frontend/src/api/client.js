@@ -83,6 +83,14 @@ export const api = {
   socialStatus: () => request('/social/status'),
   socialTest: () => request('/social/test', { method: 'POST' }),
   postTweet: (text) => request('/social/post', { method: 'POST', body: JSON.stringify({ text }) }),
+  commentReviewStatus: () => request('/comment-review/status'),
+  listPendingComments: (source, page = 1, limit = 20) => request(`/comment-review/list?source=${source}&page=${page}&limit=${limit}`),
+  aiReviewComments: (items) => request('/comment-review/ai-review', { method: 'POST', body: JSON.stringify({ items }) }),
+  autoReviewComments: (source, limit = 50) => request('/comment-review/auto-review', { method: 'POST', body: JSON.stringify({ source, limit }) }),
+  passComment: (source, id) => request('/comment-review/pass', { method: 'POST', body: JSON.stringify({ source, id }) }),
+  passComments: (source, ids) => request('/comment-review/pass-batch', { method: 'POST', body: JSON.stringify({ source, ids }) }),
+  rejectComment: (source, id, reason) => request('/comment-review/reject', { method: 'POST', body: JSON.stringify({ source, id, reason }) }),
+  rejectComments: (source, ids, reason) => request('/comment-review/reject-batch', { method: 'POST', body: JSON.stringify({ source, ids, reason }) }),
 };
 
 // 把后端返回的 /files/... 相对路径拼成可访问地址(生产环境加后端基址）

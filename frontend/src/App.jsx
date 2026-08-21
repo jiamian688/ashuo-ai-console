@@ -8,6 +8,7 @@ import SocialMedia from './pages/SocialMedia.jsx';
 import ClipManagement from './pages/ClipManagement.jsx';
 import MeetingRoom from './pages/MeetingRoom.jsx';
 import ComicDrama from './pages/ComicDrama.jsx';
+import CommentReview from './pages/CommentReview.jsx';
 import { getToken } from './api/client.js';
 
 function useTheme() {
@@ -47,6 +48,7 @@ export default function App() {
       <Route path="/clips" element={guard(<ClipManagement />, '剪辑管理')} />
       <Route path="/meeting" element={guard(<MeetingRoom />, 'Agent 会议室')} />
       <Route path="/comic" element={guard(<ComicDrama />, '漫剧生产')} />
+      <Route path="/comment-review" element={guard(<CommentReview />, '评论审核助手')} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
