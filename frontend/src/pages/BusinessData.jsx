@@ -47,7 +47,8 @@ export default function BusinessData() {
       {today && (
         <>
           <div className="section-head" style={{ marginTop: 20 }}>
-            <h2>今日({today.date})</h2>
+            <h2>最新一天数据({today.date})</h2>
+            <span className="hint">每日报告次日凌晨才生成,这里是最近已生成的一天,不是实时今天 —— 实时数据看首页顶部</span>
           </div>
           <div className="stats">
             <div className="stat-card"><div className="stat-icon green">￥</div><div><div className="label">今日收入</div><div className="value">{fmtNum(today.rechargeAmount)}</div></div></div>

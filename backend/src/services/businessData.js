@@ -44,6 +44,6 @@ export async function listDailyReports({ limit = 30 } = {}) {
 
 // 后台首页「今日关键指标」,格式是现成的 [{name, number}] 中文展示对,原样透传即可。
 export async function getTodayStats() {
-  const data = await adminCall('/admin/login/welcome');
+  const data = await adminCall('/admin/index/panelDataAjax');
   return data.data || [];
 }
