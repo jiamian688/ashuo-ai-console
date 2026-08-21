@@ -56,6 +56,15 @@ function TodoPanel({ title, bucket, items, onAdd, onToggle, onDelete, placeholde
 }
 
 const TODAY_STAT_NAMES = ['今日活跃', '今日注册', '今日VIP充值', '今日金币充值', '今日总充值', '今日充值成功率', '新用户订单'];
+const TODAY_STAT_COLORS = {
+  今日注册: '#6c5ce7',
+  今日活跃: '#3b6fe0',
+  今日VIP充值: '#f59e0b',
+  今日金币充值: '#f97316',
+  今日总充值: '#16a34a',
+  今日充值成功率: '#0d9b6c',
+  新用户订单: '#e0446c',
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -93,19 +102,23 @@ export default function Dashboard() {
     <div className="page">
       <section className="hero">
         <div className="status"><span className="dot" /> 服务运行中</div>
-        <h1>{greeting()}，<span className="name">xiangtang</span></h1>
-        <div className="sub">{today} · 你的私人工作台 · 仅显示你的任务</div>
-        <div className="token-pill">🌗 今日团队 <b>{fmtTok(stats.tokensTeam)}</b> token · <b>{fmtUsd(stats.costTeam)}</b> · 你 {fmtTok(stats.tokensYou)} / {fmtUsd(stats.costYou)}</div>
-        {todayStats.length > 0 && (
-          <div className="hero-today">
-            {todayStats.map((s) => (
-              <div key={s.name} className="hero-today-item">
-                <div className="hero-today-label">{s.name}</div>
-                <div className="hero-today-value">{s.number}</div>
-              </div>
-            ))}
+        <div className="hero-body">
+          <div className="hero-left">
+            <h1>{greeting()}，<span className="name">xiangtang</span></h1>
+            <div className="sub">{today} · 你的私人工作台 · 仅显示你的任务</div>
+            <div className="token-pill">🌗 今日团队 <b>{fmtTok(stats.tokensTeam)}</b> token · <b>{fmtUsd(stats.costTeam)}</b> · 你 {fmtTok(stats.tokensYou)} / {fmtUsd(stats.costYou)}</div>
           </div>
-        )}
+          {todayStats.length > 0 && (
+            <div className="hero-today">
+              {todayStats.map((s) => (
+                <div key={s.name} className="hero-today-item">
+                  <div className="hero-today-label">{s.name}</div>
+                  <div className="hero-today-value" style={{ color: TODAY_STAT_COLORS[s.name] }}>{s.number}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       <div className="stats">
