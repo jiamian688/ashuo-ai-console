@@ -67,13 +67,22 @@ export default function BusinessData() {
 
       <div className="card" style={{ marginTop: 8 }}>
         <div className="card-head">最近 30 天明细</div>
+        <div style={{ overflowX: 'auto' }}>
         <table>
           <thead>
             <tr>
               <th>日期</th>
               <th>新增</th>
+              <th>安卓注册</th>
               <th>日活</th>
               <th>收入</th>
+              <th>老用户充值</th>
+              <th>VIP充值</th>
+              <th>金币充值</th>
+              <th>裂变充值</th>
+              <th>拉单量</th>
+              <th>付费人数</th>
+              <th>新增付费人数</th>
               <th>支付成功率</th>
               <th>ARPU</th>
               <th>次日留存率</th>
@@ -83,14 +92,22 @@ export default function BusinessData() {
           </thead>
           <tbody>
             {!loading && days.length === 0 && (
-              <tr><td colSpan={9} className="empty" style={{ padding: 26 }}>暂无数据</td></tr>
+              <tr><td colSpan={17} className="empty" style={{ padding: 26 }}>暂无数据</td></tr>
             )}
             {days.map((d) => (
               <tr key={d.date}>
                 <td>{d.date}</td>
                 <td>{fmtNum(d.newUsers)}</td>
+                <td>{fmtNum(d.newAndroid)}</td>
                 <td>{fmtNum(d.activeTotal)}</td>
                 <td>{fmtNum(d.rechargeAmount)}</td>
+                <td>{fmtNum(d.oldPayTotal)}</td>
+                <td>{fmtNum(d.vipRechargeAmount)}</td>
+                <td>{fmtNum(d.coinRechargeAmount)}</td>
+                <td>{fmtNum(d.invitedCharge)}</td>
+                <td>{fmtNum(d.rechargeCount)}</td>
+                <td>{fmtNum(d.payingUsers)}</td>
+                <td>{fmtNum(d.regPayUser)}</td>
                 <td>{fmtPct(d.rechargeSuccessRate)}</td>
                 <td>{d.arpu ?? '—'}</td>
                 <td>{fmtPct(d.keep1dayRate)}</td>
@@ -100,6 +117,7 @@ export default function BusinessData() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

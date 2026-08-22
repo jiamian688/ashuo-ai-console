@@ -24,12 +24,15 @@ function normalize(raw) {
     keep7dayRate: raw.keep_7day_rate,
     // 收入
     rechargeAmount: raw.total_recharge_amount,
+    oldPayTotal: raw.old_pay_total,
     vipRechargeAmount: raw.total_vip_recharge_amount,
     coinRechargeAmount: raw.total_coin_recharge_amount,
+    invitedCharge: raw.invited_charge,
     rechargeCount: raw.total_recharge_count,
     rechargeSuccessCount: raw.total_recharge_success_count,
     rechargeSuccessRate: raw.total_recharge_success_rate,
     payingUsers: raw.number_of_user_paid,
+    regPayUser: raw.reg_pay_user,
     arpu: raw.arpu,
     arppu: raw.arppu,
   };
