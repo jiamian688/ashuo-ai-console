@@ -14,6 +14,7 @@ import comicRouter from './routes/comic.js';
 import commentReviewRouter from './routes/commentReview.js';
 import businessDataRouter from './routes/businessData.js';
 import usersRouter from './routes/users.js';
+import postAdminRouter from './routes/postAdmin.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -57,6 +58,7 @@ app.use('/api/comic', requireAuth, comicRouter);
 app.use('/api/comment-review', requireAuth, commentReviewRouter);
 app.use('/api/business-data', requireAuth, businessDataRouter);
 app.use('/api/users', requireAuth, requireAdmin, usersRouter);
+app.use('/api/post-admin', requireAuth, postAdminRouter);
 
 // 本地用 BACKEND_PORT(避开被注入的 PORT);Render 等平台注入 PORT,回退到它
 const PORT = process.env.BACKEND_PORT || process.env.PORT || 4000;

@@ -110,6 +110,12 @@ export const api = {
   businessDataStatus: () => request('/business-data/status'),
   listDailyBusinessData: (limit = 30) => request(`/business-data/daily?limit=${limit}`),
   todayHomeStats: () => request('/business-data/today'),
+  postAdminStatus: () => request('/post-admin/status'),
+  listPendingPosts: (page = 1, limit = 20) => request(`/post-admin/list?page=${page}&limit=${limit}&status=0`),
+  passPost: (id) => request('/post-admin/pass', { method: 'POST', body: JSON.stringify({ id }) }),
+  rejectPost: (id, reason) => request('/post-admin/reject', { method: 'POST', body: JSON.stringify({ id, reason }) }),
+  aiReviewPosts: (items) => request('/post-admin/ai-review', { method: 'POST', body: JSON.stringify({ items }) }),
+  autoReviewPosts: (limit = 20) => request('/post-admin/auto-review', { method: 'POST', body: JSON.stringify({ limit }) }),
 };
 
 // 把后端返回的 /files/... 相对路径拼成可访问地址(生产环境加后端基址）

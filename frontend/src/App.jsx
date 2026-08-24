@@ -11,6 +11,7 @@ import ComicDrama from './pages/ComicDrama.jsx';
 import CommentReview from './pages/CommentReview.jsx';
 import BusinessData from './pages/BusinessData.jsx';
 import Admin from './pages/Admin.jsx';
+import PostReview from './pages/PostReview.jsx';
 import { getToken, getUser } from './api/client.js';
 
 function useTheme() {
@@ -54,6 +55,7 @@ export default function App() {
       <Route path="/comment-review" element={guard(<CommentReview />, '评论审核助手')} />
       <Route path="/business-data" element={guard(<BusinessData />, '经营数据看板')} />
       <Route path="/admin" element={guard(<Admin />, '账号管理', true)} />
+      <Route path="/post-review" element={guard(<PostReview />, '帖子审核')} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -38,6 +38,66 @@ export async function chatWithUsage({ prompt, maxTokens = 600 }) {
   return chatRaw(prompt, maxTokens);
 }
 
+// 带图片的多模态调用,给一段 prompt + 图片 URL 数组,返回纯文本。
+// Claude 和 Grok(OpenAI 兼容格式)都支持直接传图片 URL,不用自己下载转 base64。
+export async function chatVision({ prompt, images = [], maxTokens = 600 }) {
+  const provider = activeProvider();
+  if (provider === 'grok') return chatGrokVision(prompt, images, maxTokens);
+  if (provider === 'claude') return chatClaudeVision(prompt, images, maxTokens);
+  throw new Error('未配置 AI(在 backend/.env 填 XAI_API_KEY 或 ANTHROPIC_API_KEY)');
+}
+
+async function chatClaudeVision(prompt, images, maxTokens) {
+  const content = [
+    ...images.map((url) => ({ type: 'image', source: { type: 'url', url } })),
+    { type: 'text', text: prompt },
+  ];
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content }],
+    }),
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message);
+  const text = (data.content?.[0]?.text || '').trim();
+  if (!text) throw new Error('AI 返回空内容');
+  return text;
+}
+
+async function chatGrokVision(prompt, images, maxTokens) {
+  const content = [
+    { type: 'text', text: prompt },
+    ...images.map((url) => ({ type: 'image_url', image_url: { url } })),
+  ];
+  const resp = await fetch('https://api.x.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${process.env.XAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: process.env.GROK_VISION_MODEL || 'grok-2-vision-1212',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content }],
+    }),
+  });
+  const data = await resp.json();
+  if (data.error) {
+    throw new Error(typeof data.error === 'string' ? data.error : data.error.message);
+  }
+  const text = (data.choices?.[0]?.message?.content || '').trim();
+  if (!text) throw new Error('AI 返回空内容');
+  return text;
+}
+
 async function chatClaude(prompt, maxTokens) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
