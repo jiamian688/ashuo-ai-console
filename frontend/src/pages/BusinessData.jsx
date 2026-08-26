@@ -81,6 +81,7 @@ export default function BusinessData() {
               <th>金币充值</th>
               <th>裂变充值</th>
               <th>拉单量</th>
+              <th>安卓订单量</th>
               <th>付费人数</th>
               <th>新增付费人数</th>
               <th>支付成功率</th>
@@ -92,7 +93,7 @@ export default function BusinessData() {
           </thead>
           <tbody>
             {!loading && days.length === 0 && (
-              <tr><td colSpan={17} className="empty" style={{ padding: 26 }}>暂无数据</td></tr>
+              <tr><td colSpan={18} className="empty" style={{ padding: 26 }}>暂无数据</td></tr>
             )}
             {days.map((d) => (
               <tr key={d.date}>
@@ -106,6 +107,7 @@ export default function BusinessData() {
                 <td>{fmtNum(d.coinRechargeAmount)}</td>
                 <td>{fmtNum(d.invitedCharge)}</td>
                 <td>{fmtNum(d.rechargeCount)}</td>
+                <td>{fmtNum(d.androidOrderCount)}</td>
                 <td>{fmtNum(d.payingUsers)}</td>
                 <td>{fmtNum(d.regPayUser)}</td>
                 <td>{fmtPct(d.rechargeSuccessRate)}</td>

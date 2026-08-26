@@ -38,10 +38,28 @@ function normalize(raw) {
   };
 }
 
+// 财务管理→订单列表按天筛选「设备=android」拿当天下单量(不筛状态,和「拉单量」口径一致:所有下单,不只成功的)。
+async function getAndroidOrderCount(date) {
+  const data = await adminCall('/admin/orders/listAjax', {
+    params: {
+      page: 1,
+      limit: 1,
+      'where[orders.oauth_type]': 'android',
+      'between[orders.created_at][from]': `${date} 00:00:00`,
+      'between[orders.created_at][to]': `${date} 23:59:59`,
+    },
+  });
+  return data.count || 0;
+}
+
 // 后台按日期倒序返回,limit 条 = 最近 limit 天
 export async function listDailyReports({ limit = 30 } = {}) {
   const data = await adminCall('/admin/dailyreport/listAjax', { params: { page: 1, limit } });
   const list = (data.data || []).map(normalize);
+  const androidCounts = await Promise.all(
+    list.map((d) => getAndroidOrderCount(d.date).catch(() => null))
+  );
+  list.forEach((d, i) => { d.androidOrderCount = androidCounts[i]; });
   return { list, total: data.count || 0 };
 }
 
