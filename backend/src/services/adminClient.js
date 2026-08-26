@@ -97,8 +97,11 @@ export async function adminUploadFile(buffer, filename, mimetype) {
     return { resp, data };
   };
 
+  // 注意:这个 upload 接口成功时 code 是 200,跟其它接口成功用 code:0 的约定不一样。
+  const ok = (d) => d.code === 200 || d.code === 0;
+
   let { resp, data } = await doUpload(token);
-  if (data.code !== 0 && autoLoginConfigured()) {
+  if (!ok(data) && autoLoginConfigured()) {
     cachedToken = null;
     try {
       const freshToken = await login();
@@ -107,7 +110,7 @@ export async function adminUploadFile(buffer, filename, mimetype) {
       throw new Error(`${data.msg || '上传失败'}(重新登录也失败: ${loginErr.message})`);
     }
   }
-  if (data.code !== 0) throw new Error(data.msg || `图片上传失败(HTTP ${resp.status}, code=${data.code})`);
+  if (!ok(data)) throw new Error(data.msg || `图片上传失败(HTTP ${resp.status}, code=${data.code})`);
   return data.data; // { url, media_url, width, height, ... }
 }
 
