@@ -37,5 +37,5 @@ export async function passPost(id) {
 }
 
 export async function rejectPost(id, reason) {
-  return adminCall('/admin/post/doReject', { method: 'POST', body: { id, refused: reason || '' } });
+  return adminCall('/admin/post/refuseUserUpload', { method: 'POST', body: { _pk: id, status: 2, refused: reason || '' } });
 }

@@ -84,7 +84,7 @@ async function chatGrokVision(prompt, images, maxTokens) {
       authorization: `Bearer ${process.env.XAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: process.env.GROK_VISION_MODEL || 'grok-2-vision-1212',
+      model: GROK_MODEL,
       max_tokens: maxTokens,
       messages: [{ role: 'user', content }],
     }),
