@@ -188,8 +188,23 @@ export default function CommentReview() {
         </div>
         {error && <div className="error" style={{ margin: '0 20px 16px' }}>{error}</div>}
         {autoResult && (
-          <div className="small" style={{ color: 'var(--text-faint)', margin: '0 20px 16px' }}>
-            本轮自动审核 {autoResult.reviewed} 条 · 通过 {autoResult.passed} · {rejectLabel} {autoResult.rejected}
+          <div style={{ margin: '0 20px 16px' }}>
+            <div className="small" style={{ color: 'var(--text-faint)', marginBottom: 8 }}>
+              本轮自动审核 {autoResult.reviewed} 条 · 通过 {autoResult.passed} · {rejectLabel} {autoResult.rejected}
+            </div>
+            {autoResult.details?.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
+                {autoResult.details.map((d) => (
+                  <div key={d.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13 }}>
+                    <span className="muted" style={{ width: 60, flexShrink: 0 }}>#{d.id}</span>
+                    <span className={`status-pill ${d.action === 'pass' ? 'posted' : 'failed'}`} style={{ flexShrink: 0 }}>
+                      {d.action === 'pass' ? `已${'通过'}` : `已${rejectLabel}`}
+                    </span>
+                    <span className="muted">{d.reason}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
