@@ -141,9 +141,7 @@ export default function Dashboard() {
             <h3>{t.title}{t.external && <span className="tag">外部应用 ↗</span>}</h3>
             <div className="desc">{t.desc}</div>
             <div className="foot">
-              {t.key === 'community' && <><span><b>0</b> 队列</span><span><b>0</b> 今日发</span></>}
               {t.key === 'clips' && <><span><b>0</b> 今日</span><span><b>0</b> 累计</span></>}
-              {t.key === 'social' && <span>输入关键词 · 生成多版本 · 复制手动发布</span>}
             </div>
           </div>
         ))}
