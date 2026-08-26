@@ -22,10 +22,11 @@ export const TOOLS = [
     tint: '#fdeef0',
     color: '#e0446c',
     title: '内容审核',
-    desc: 'AI 审核评论 + 帖子 · 一键通过/拒绝',
+    desc: 'AI 审核评论 + 帖子 · 一键通过/拒绝 · 发布新帖',
     submenu: [
       { key: 'commentReview', icon: '🛡', title: '评论审核助手', desc: 'AI 审核视频/社区/黄游/书评评论 · 一键通过/拒绝', to: '/comment-review' },
       { key: 'postReview', icon: '📝', title: '帖子审核', desc: 'AI 识图审核用户帖子(引流/无看点)· 一键通过/拒绝', to: '/post-review' },
+      { key: 'communityPost', icon: '📮', title: '社区发布', desc: '发布新帖子到社区', to: '/community-post' },
     ],
   },
 ];

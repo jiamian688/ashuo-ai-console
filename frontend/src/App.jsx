@@ -12,6 +12,7 @@ import CommentReview from './pages/CommentReview.jsx';
 import BusinessData from './pages/BusinessData.jsx';
 import Admin from './pages/Admin.jsx';
 import PostReview from './pages/PostReview.jsx';
+import CommunityPost from './pages/CommunityPost.jsx';
 import { getToken, getUser } from './api/client.js';
 
 function useTheme() {
@@ -56,6 +57,7 @@ export default function App() {
       <Route path="/business-data" element={guard(<BusinessData />, '经营数据看板')} />
       <Route path="/admin" element={guard(<Admin />, '账号管理', true)} />
       <Route path="/post-review" element={guard(<PostReview />, '帖子审核')} />
+      <Route path="/community-post" element={guard(<CommunityPost />, '社区发布')} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
