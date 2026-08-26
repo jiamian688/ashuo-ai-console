@@ -28,6 +28,11 @@ export default function CommentReview() {
   const [actingId, setActingId] = useState(null);
   const [sweepBusy, setSweepBusy] = useState(false);
   const [sweepProgress, setSweepProgress] = useState(null); // { round, reviewed, passed, rejected, details: [] }
+  const [todayStats, setTodayStats] = useState(null);
+
+  const loadTodayStats = () => {
+    api.commentReviewTodayStats().then(setTodayStats).catch(() => {});
+  };
 
   const sources = status.sources?.length ? status.sources : FALLBACK_SOURCES;
   const cur = sources.find((s) => s.key === source) || sources[0];
@@ -44,6 +49,7 @@ export default function CommentReview() {
 
   useEffect(() => {
     api.commentReviewStatus().then(setStatus).catch(() => {});
+    loadTodayStats();
   }, []);
   useEffect(() => { load(); setSelected({}); setSuggestions({}); setAutoResult(null); setSweepProgress(null); }, [page, source]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setPage(1); }, [source]);
@@ -82,6 +88,7 @@ export default function CommentReview() {
       const r = await api.autoReviewComments(source, 50);
       setAutoResult(r);
       load();
+      loadTodayStats();
       setSelected({});
       setSuggestions({});
     } catch (err) {
@@ -110,6 +117,7 @@ export default function CommentReview() {
           details: [...prev.details, ...(r.details || [])],
         }));
         api.listPendingComments(source, 1, 1).then((d) => setTotal(d.total || 0)).catch(() => {});
+        loadTodayStats();
         if (!r.reviewed || round >= MAX_SWEEP_ROUNDS) break;
         await new Promise((resolve) => setTimeout(resolve, 400));
       }
@@ -128,6 +136,7 @@ export default function CommentReview() {
     try {
       await api.passComment(source, id);
       load();
+      loadTodayStats();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -144,6 +153,7 @@ export default function CommentReview() {
     try {
       await api.rejectComment(source, id, reason);
       load();
+      loadTodayStats();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -156,6 +166,7 @@ export default function CommentReview() {
     try {
       await api.passComments(source, selectedIds);
       load();
+      loadTodayStats();
       setSelected({});
     } catch (err) {
       setError(err.message);
@@ -173,6 +184,7 @@ export default function CommentReview() {
     try {
       await api.rejectComments(source, selectedIds, reason);
       load();
+      loadTodayStats();
       setSelected({});
     } catch (err) {
       setError(err.message);
@@ -189,6 +201,30 @@ export default function CommentReview() {
           ? `已连接管理后台评论接口 · AI: ${status.ai || '未配置'}`
           : '未配置评论审核后台 token(在 backend/.env 填 HANIME_ADMIN_TOKEN 后可用)'}
       </div>
+
+      {todayStats && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+            <div>
+              <div className="muted small">今日已审核(全部模块)</div>
+              <div style={{ fontSize: 28, fontWeight: 700 }}>{todayStats.total}</div>
+            </div>
+            <div>
+              <div className="muted small">通过</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--green, #16a34a)' }}>{todayStats.passed}</div>
+            </div>
+            <div>
+              <div className="muted small">拒绝</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--red, #e0446c)' }}>{todayStats.rejected}</div>
+            </div>
+            {todayStats.bySource?.length > 0 && (
+              <div className="muted small" style={{ marginLeft: 'auto' }}>
+                {todayStats.bySource.map((s) => `${s.label} ${s.total}`).join(' · ')}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="card" style={{ marginTop: 20 }}>
         <div className="card-body" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 0 }}>

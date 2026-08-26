@@ -8,12 +8,17 @@ import {
   passComments,
   rejectComment,
   rejectComments,
+  getTodayReviewStats,
 } from '../services/commentAdmin.js';
 
 const router = Router();
 
 router.get('/status', (req, res) => {
   res.json({ configured: commentAdminConfigured(), ai: activeProvider(), sources: listSources() });
+});
+
+router.get('/today-stats', (req, res) => {
+  res.json(getTodayReviewStats());
 });
 
 // status: 未提供时,有审核队列的默认只拉未审核(0);book 没有审核队列,忽略该参数。

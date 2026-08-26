@@ -1,5 +1,43 @@
 // 对接外部视频站(hanimepro)管理后台的评论审核接口。
 import { adminConfigured, adminCall } from './adminClient.js';
+import db from '../db.js';
+
+const insertLog = db.prepare(
+  'INSERT INTO comment_review_log (source, item_id, action, reason) VALUES (?, ?, ?, ?)'
+);
+function logReview(sourceKey, ids, action, reason) {
+  const tx = db.transaction((idList) => {
+    for (const id of idList) insertLog.run(sourceKey, id, action, reason || '');
+  });
+  tx(ids);
+}
+
+// 当天(按北京时间 UTC+8 折算)评论审核汇总:总数/通过/拒绝,以及按模块拆分。
+export function getTodayReviewStats() {
+  const rows = db.prepare(`
+    SELECT source, action, COUNT(*) AS n
+    FROM comment_review_log
+    WHERE date(created_at, '+8 hours') = date('now', '+8 hours')
+    GROUP BY source, action
+  `).all();
+  const bySource = {};
+  let passed = 0, rejected = 0;
+  for (const r of rows) {
+    if (!bySource[r.source]) bySource[r.source] = { source: r.source, passed: 0, rejected: 0 };
+    if (r.action === 'pass') { bySource[r.source].passed += r.n; passed += r.n; }
+    else { bySource[r.source].rejected += r.n; rejected += r.n; }
+  }
+  return {
+    total: passed + rejected,
+    passed,
+    rejected,
+    bySource: Object.values(bySource).map((s) => ({
+      ...s,
+      label: SOURCES[s.source]?.label || s.source,
+      total: s.passed + s.rejected,
+    })),
+  };
+}
 
 // 后台目前有 4 个评论模块。mv/post/porn 三个走「未审核→通过/拒绝」的审核队列;
 // book(书评)后台没有审核队列,评论发出即可见,唯一的管理手段是删除,所以拒绝=删除。
@@ -51,28 +89,40 @@ export async function listComments(sourceKey, { page = 1, limit = 20, status } =
 export async function passComment(sourceKey, id) {
   const cfg = sourceConfig(sourceKey);
   if (!cfg.hasApprovalFlow) throw new Error(`${cfg.label}没有审核队列,不需要「通过」`);
-  return call(`/admin/${cfg.resource}/doPass`, { method: 'POST', body: { id } });
+  const r = await call(`/admin/${cfg.resource}/doPass`, { method: 'POST', body: { id } });
+  logReview(sourceKey, [id], 'pass');
+  return r;
 }
 
 export async function passComments(sourceKey, ids) {
   const cfg = sourceConfig(sourceKey);
   if (!cfg.hasApprovalFlow) throw new Error(`${cfg.label}没有审核队列,不需要「通过」`);
-  return call(`/admin/${cfg.resource}/passAll`, { method: 'POST', body: { ids: ids.join(',') } });
+  const r = await call(`/admin/${cfg.resource}/passAll`, { method: 'POST', body: { ids: ids.join(',') } });
+  logReview(sourceKey, ids, 'pass');
+  return r;
 }
 
 // 有审核队列的模块:「拒绝」= 打回并记录原因;book 没有审核队列:「拒绝」= 直接删除。
 export async function rejectComment(sourceKey, id, reason) {
   const cfg = sourceConfig(sourceKey);
+  let r;
   if (cfg.hasApprovalFlow) {
-    return call(`/admin/${cfg.resource}/doReject`, { method: 'POST', body: { id, refused: reason || '' } });
+    r = await call(`/admin/${cfg.resource}/doReject`, { method: 'POST', body: { id, refused: reason || '' } });
+  } else {
+    r = await call(`/admin/${cfg.resource}/del`, { method: 'POST', body: { _pk: id } });
   }
-  return call(`/admin/${cfg.resource}/del`, { method: 'POST', body: { _pk: id } });
+  logReview(sourceKey, [id], 'reject', reason);
+  return r;
 }
 
 export async function rejectComments(sourceKey, ids, reason) {
   const cfg = sourceConfig(sourceKey);
+  let r;
   if (cfg.hasApprovalFlow) {
-    return call(`/admin/${cfg.resource}/batchRefuse`, { method: 'POST', body: { comment_ids: ids.join(','), refused: reason || '' } });
+    r = await call(`/admin/${cfg.resource}/batchRefuse`, { method: 'POST', body: { comment_ids: ids.join(','), refused: reason || '' } });
+  } else {
+    r = await call(`/admin/${cfg.resource}/delAll`, { method: 'POST', body: { value: ids.join(',') } });
   }
-  return call(`/admin/${cfg.resource}/delAll`, { method: 'POST', body: { value: ids.join(',') } });
+  logReview(sourceKey, ids, 'reject', reason);
+  return r;
 }

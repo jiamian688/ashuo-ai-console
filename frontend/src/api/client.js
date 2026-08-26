@@ -100,6 +100,7 @@ export const api = {
   socialTest: () => request('/social/test', { method: 'POST' }),
   postTweet: (text) => request('/social/post', { method: 'POST', body: JSON.stringify({ text }) }),
   commentReviewStatus: () => request('/comment-review/status'),
+  commentReviewTodayStats: () => request('/comment-review/today-stats'),
   listPendingComments: (source, page = 1, limit = 20) => request(`/comment-review/list?source=${source}&page=${page}&limit=${limit}`),
   aiReviewComments: (items) => request('/comment-review/ai-review', { method: 'POST', body: JSON.stringify({ items }) }),
   autoReviewComments: (source, limit = 50) => request('/comment-review/auto-review', { method: 'POST', body: JSON.stringify({ source, limit }) }),
