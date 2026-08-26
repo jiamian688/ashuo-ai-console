@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 
 const ACTION_LABEL = { pass: '建议通过', reject: '建议拒绝', error: 'AI 出错' };
+const EXEC_LABEL = { pass: '已通过', reject: '已拒绝', error: 'AI 出错' };
 
 export default function PostReview() {
   const navigate = useNavigate();
@@ -18,6 +19,13 @@ export default function PostReview() {
   const [aiBusy, setAiBusy] = useState(false);
   const [autoBusy, setAutoBusy] = useState(false);
   const [autoResult, setAutoResult] = useState(null);
+  const [sweepBusy, setSweepBusy] = useState(false);
+  const [sweepProgress, setSweepProgress] = useState(null); // { round, reviewed, passed, rejected, details: [] }
+  const [todayStats, setTodayStats] = useState(null);
+
+  const loadTodayStats = () => {
+    api.postAdminTodayStats().then(setTodayStats).catch(() => {});
+  };
 
   const load = () => {
     setLoading(true);
@@ -30,6 +38,7 @@ export default function PostReview() {
 
   useEffect(() => {
     api.postAdminStatus().then(setStatus).catch(() => {});
+    loadTodayStats();
   }, []);
   useEffect(() => { load(); setSuggestions({}); setAutoResult(null); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -54,14 +63,46 @@ export default function PostReview() {
     setAutoBusy(true);
     setError('');
     setAutoResult(null);
+    setSweepProgress(null);
     try {
       const r = await api.autoReviewPosts(20);
       setAutoResult(r);
       load();
+      loadTodayStats();
     } catch (err) {
       setError(err.message);
     } finally {
       setAutoBusy(false);
+    }
+  };
+
+  const MAX_SWEEP_ROUNDS = 30; // 安全阀:最多处理 30*20=600 条,防止极端情况下无限循环
+  const runSweep = async () => {
+    setSweepBusy(true);
+    setError('');
+    setAutoResult(null);
+    setSweepProgress({ round: 0, reviewed: 0, passed: 0, rejected: 0, details: [] });
+    try {
+      let round = 0;
+      for (;;) {
+        round += 1;
+        const r = await api.autoReviewPosts(20);
+        setSweepProgress((prev) => ({
+          round,
+          reviewed: prev.reviewed + r.reviewed,
+          passed: prev.passed + r.passed,
+          rejected: prev.rejected + r.rejected,
+          details: [...prev.details, ...(r.details || [])],
+        }));
+        loadTodayStats();
+        if (!r.reviewed || round >= MAX_SWEEP_ROUNDS) break;
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSweepBusy(false);
     }
   };
 
@@ -70,6 +111,7 @@ export default function PostReview() {
     try {
       await api.passPost(id);
       load();
+      loadTodayStats();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -83,6 +125,7 @@ export default function PostReview() {
     try {
       await api.rejectPost(id, reason);
       load();
+      loadTodayStats();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -102,9 +145,49 @@ export default function PostReview() {
         <button className="ghost-btn" onClick={load} disabled={loading}>{loading ? '刷新中…' : '刷新'}</button>
       </div>
       {error && <div className="error" style={{ margin: '12px 0' }}>{error}</div>}
+
+      {todayStats && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+            <div>
+              <div className="muted small">今日已审核帖子</div>
+              <div style={{ fontSize: 28, fontWeight: 700 }}>{todayStats.total}</div>
+            </div>
+            <div>
+              <div className="muted small">通过</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--green, #16a34a)' }}>{todayStats.passed}</div>
+            </div>
+            <div>
+              <div className="muted small">拒绝</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--red, #e0446c)' }}>{todayStats.rejected}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {autoResult && (
         <div className="small" style={{ color: 'var(--text-faint)', margin: '12px 0' }}>
           本轮自动审核 {autoResult.reviewed} 条 · 通过 {autoResult.passed} · 拒绝 {autoResult.rejected}
+        </div>
+      )}
+      {sweepProgress && (
+        <div style={{ margin: '12px 0' }}>
+          <div className="small" style={{ color: 'var(--text-faint)', marginBottom: 8 }}>
+            {sweepBusy ? '批量处理中…' : '批量处理完成'} · 共 {sweepProgress.round} 轮 · 累计审核 {sweepProgress.reviewed} 条 · 通过 {sweepProgress.passed} · 拒绝 {sweepProgress.rejected}
+          </div>
+          {sweepProgress.details.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
+              {sweepProgress.details.map((d, i) => (
+                <div key={`${d.id}-${i}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13 }}>
+                  <span className="muted" style={{ width: 60, flexShrink: 0 }}>#{d.id}</span>
+                  <span className={`status-pill ${d.action === 'pass' ? 'posted' : 'failed'}`} style={{ flexShrink: 0 }}>
+                    {EXEC_LABEL[d.action] || d.action}
+                  </span>
+                  <span className="muted">{d.reason}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -115,8 +198,11 @@ export default function PostReview() {
             <button className="ghost-btn" onClick={runAiReview} disabled={aiBusy || !list.length}>
               {aiBusy ? 'AI 审核中…' : 'AI 给出建议(不自动执行)'}
             </button>
-            <button className="btn-primary" onClick={runAutoReview} disabled={autoBusy}>
-              {autoBusy ? '自动审核中…' : '一键 AI 自动审核并执行(含识图)'}
+            <button className="btn-primary" onClick={runAutoReview} disabled={autoBusy || sweepBusy}>
+              {autoBusy ? '自动审核中…' : '一键 AI 自动审核并执行(含识图,单批 20 条)'}
+            </button>
+            <button className="btn-primary" onClick={runSweep} disabled={autoBusy || sweepBusy}>
+              {sweepBusy ? `批量清空中…(第 ${sweepProgress?.round || 0} 轮)` : '全部自动审核(循环清空队列)'}
             </button>
           </div>
         </div>

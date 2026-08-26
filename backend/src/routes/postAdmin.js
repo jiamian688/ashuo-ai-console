@@ -1,12 +1,16 @@
 import { Router } from 'express';
 import { adminConfigured } from '../services/adminClient.js';
-import { listPosts, passPost, rejectPost } from '../services/postAdmin.js';
+import { listPosts, passPost, rejectPost, getTodayPostStats } from '../services/postAdmin.js';
 import { activeProvider, chat, chatVision } from '../services/llm.js';
 
 const router = Router();
 
 router.get('/status', (req, res) => {
   res.json({ configured: adminConfigured(), ai: activeProvider() });
+});
+
+router.get('/today-stats', (req, res) => {
+  res.json(getTodayPostStats());
 });
 
 router.get('/list', async (req, res) => {

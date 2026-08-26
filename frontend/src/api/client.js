@@ -112,6 +112,7 @@ export const api = {
   listDailyBusinessData: (limit = 30) => request(`/business-data/daily?limit=${limit}`),
   todayHomeStats: () => request('/business-data/today'),
   postAdminStatus: () => request('/post-admin/status'),
+  postAdminTodayStats: () => request('/post-admin/today-stats'),
   listPendingPosts: (page = 1, limit = 20) => request(`/post-admin/list?page=${page}&limit=${limit}&status=0`),
   passPost: (id) => request('/post-admin/pass', { method: 'POST', body: JSON.stringify({ id }) }),
   rejectPost: (id, reason) => request('/post-admin/reject', { method: 'POST', body: JSON.stringify({ id, reason }) }),

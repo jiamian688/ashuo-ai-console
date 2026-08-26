@@ -47,6 +47,14 @@ db.exec(`
     reason TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS post_review_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER,
+    action TEXT NOT NULL,          -- pass | reject
+    reason TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 // 轻量迁移:users 表后加的列
