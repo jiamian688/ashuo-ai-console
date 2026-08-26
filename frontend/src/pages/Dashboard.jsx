@@ -62,6 +62,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ done: 0, queued: 0, failed: 0, xAccounts: 0, tokensTeam: 0, costTeam: 0, tokensYou: 0, costYou: 0 });
   const [todos, setTodos] = useState([]);
   const [todayStats, setTodayStats] = useState([]);
+  const [submenuTool, setSubmenuTool] = useState(null);
 
   const loadStats = () => api.stats().then(setStats).catch(() => {});
   const loadTodos = () => api.listTodos().then(setTodos).catch(() => {});
@@ -130,7 +131,11 @@ export default function Dashboard() {
           <div
             key={t.key}
             className={`tool-card ${t.external ? 'disabled' : 'clickable'}`}
-            onClick={() => !t.external && navigate(t.to)}
+            onClick={() => {
+              if (t.external) return;
+              if (t.submenu) setSubmenuTool(t);
+              else navigate(t.to);
+            }}
           >
             <div className="tool-icon" style={{ background: t.tint, color: t.color }}>{t.icon}</div>
             <h3>{t.title}{t.external && <span className="tag">外部应用 ↗</span>}</h3>
@@ -152,6 +157,33 @@ export default function Dashboard() {
           items={todos.filter((t) => t.bucket === 'tomorrow')}
           onAdd={addTodo} onToggle={toggleTodo} onDelete={deleteTodo} />
       </div>
+
+      {submenuTool && (
+        <div className="modal-overlay" onClick={() => setSubmenuTool(null)}>
+          <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              {submenuTool.title}
+              <button className="ghost-btn" onClick={() => setSubmenuTool(null)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {submenuTool.submenu.map((s) => (
+                <div
+                  key={s.key}
+                  className="tool-card clickable"
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}
+                  onClick={() => { setSubmenuTool(null); navigate(s.to); }}
+                >
+                  <div className="tool-icon" style={{ background: submenuTool.tint, color: submenuTool.color }}>{s.icon}</div>
+                  <div>
+                    <h3 style={{ margin: 0 }}>{s.title}</h3>
+                    <div className="desc" style={{ margin: 0 }}>{s.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
