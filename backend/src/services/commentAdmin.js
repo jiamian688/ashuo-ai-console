@@ -12,6 +12,13 @@ function logReview(sourceKey, ids, action, reason) {
   tx(ids);
 }
 
+// book 等无审核队列的模块,后台只会返回「最近发布」的评论,AI 判过「通过」的也不会消失。
+// 用我们自己记的审核日志过滤掉已经处理过的,避免重复审核、看起来像没生效。
+function getReviewedIdSet(sourceKey) {
+  const rows = db.prepare('SELECT DISTINCT item_id FROM comment_review_log WHERE source = ?').all(sourceKey);
+  return new Set(rows.map((r) => r.item_id));
+}
+
 // 当天(按北京时间 UTC+8 折算)评论审核汇总:总数/通过/拒绝,以及按模块拆分。
 export function getTodayReviewStats() {
   const rows = db.prepare(`
@@ -82,7 +89,11 @@ export async function listComments(sourceKey, { page = 1, limit = 20, status } =
     params.status = status === undefined || status === '' ? 0 : status;
   }
   const data = await call(`/admin/${cfg.resource}/listAjax`, { params });
-  const list = (data.data || []).map((raw) => normalize(sourceKey, cfg, raw));
+  let list = (data.data || []).map((raw) => normalize(sourceKey, cfg, raw));
+  if (!cfg.hasApprovalFlow) {
+    const reviewed = getReviewedIdSet(sourceKey);
+    list = list.filter((c) => !reviewed.has(c.id));
+  }
   return { list, total: data.count || 0, hasApprovalFlow: cfg.hasApprovalFlow, label: cfg.label };
 }
 
