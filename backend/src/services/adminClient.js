@@ -79,11 +79,20 @@ export async function adminUploadFile(buffer, filename, mimetype) {
     const form = new FormData();
     form.append('file', new Blob([buffer], { type: mimetype }), filename);
     form.append('position', 'upload');
-    const resp = await fetch(`${BASE}/admin/upload/upload`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${t}` },
-      body: form,
-    });
+    let resp;
+    try {
+      resp = await fetch(`${BASE}/admin/upload/upload`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${t}` },
+        body: form,
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (err) {
+      if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+        throw new Error('上传超时(30秒),可能是网络问题,请重试');
+      }
+      throw err;
+    }
     const data = await resp.json().catch(() => ({}));
     return { resp, data };
   };
