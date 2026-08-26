@@ -1,7 +1,10 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { adminConfigured } from '../services/adminClient.js';
-import { listPosts, passPost, rejectPost, getTodayPostStats } from '../services/postAdmin.js';
+import { listPosts, passPost, rejectPost, getTodayPostStats, uploadPostImage, createPost } from '../services/postAdmin.js';
 import { activeProvider, chat, chatVision } from '../services/llm.js';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 const router = Router();
 
@@ -11,6 +14,29 @@ router.get('/status', (req, res) => {
 
 router.get('/today-stats', (req, res) => {
   res.json(getTodayPostStats());
+});
+
+router.post('/upload-image', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '没有收到图片' });
+  try {
+    const url = await uploadPostImage(req.file.buffer, req.file.originalname, req.file.mimetype);
+    res.json({ url });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/create', async (req, res) => {
+  const { title, content, aff, categoryId, type, unlockCoins, videoImg } = req.body || {};
+  if (!title || !content) return res.status(400).json({ error: '标题和正文不能为空' });
+  if (!aff) return res.status(400).json({ error: '缺少发帖用户 AFF' });
+  if (!categoryId) return res.status(400).json({ error: '缺少圈子分类 ID' });
+  try {
+    const r = await createPost({ title, content, aff, categoryId, type, unlockCoins, videoImg });
+    res.json({ ok: true, id: r.data?.id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 router.get('/list', async (req, res) => {

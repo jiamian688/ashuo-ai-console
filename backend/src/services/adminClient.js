@@ -71,6 +71,37 @@ async function callWithToken(path, { method = 'GET', params, body } = {}, token)
   return { resp, data };
 }
 
+// 上传图片(如新增帖子表单里的图片)专用:后台的 upload 接口收 multipart/form-data,
+// 跟其它接口的 JSON body 不是一回事,所以单独走一遍(同样的 token 获取/过期重试逻辑)。
+export async function adminUploadFile(buffer, filename, mimetype) {
+  const token = await ensureToken();
+  const doUpload = async (t) => {
+    const form = new FormData();
+    form.append('file', new Blob([buffer], { type: mimetype }), filename);
+    form.append('position', 'upload');
+    const resp = await fetch(`${BASE}/admin/upload/upload`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${t}` },
+      body: form,
+    });
+    const data = await resp.json().catch(() => ({}));
+    return { resp, data };
+  };
+
+  let { data } = await doUpload(token);
+  if (data.code !== 0 && autoLoginConfigured()) {
+    cachedToken = null;
+    try {
+      const freshToken = await login();
+      ({ data } = await doUpload(freshToken));
+    } catch (loginErr) {
+      throw new Error(`${data.msg || '上传失败'}(重新登录也失败: ${loginErr.message})`);
+    }
+  }
+  if (data.code !== 0) throw new Error(data.msg || '图片上传失败');
+  return data.data; // { url, media_url, width, height, ... }
+}
+
 export async function adminCall(path, options = {}) {
   const token = await ensureToken();
   let { resp, data } = await callWithToken(path, options, token);

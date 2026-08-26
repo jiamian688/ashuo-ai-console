@@ -118,6 +118,12 @@ export const api = {
   rejectPost: (id, reason) => request('/post-admin/reject', { method: 'POST', body: JSON.stringify({ id, reason }) }),
   aiReviewPosts: (items) => request('/post-admin/ai-review', { method: 'POST', body: JSON.stringify({ items }) }),
   autoReviewPosts: (limit = 20) => request('/post-admin/auto-review', { method: 'POST', body: JSON.stringify({ limit }) }),
+  uploadCommunityPostImage: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request('/post-admin/upload-image', { method: 'POST', body: formData });
+  },
+  createCommunityPost: (payload) => request('/post-admin/create', { method: 'POST', body: JSON.stringify(payload) }),
 };
 
 // 把后端返回的 /files/... 相对路径拼成可访问地址(生产环境加后端基址）
