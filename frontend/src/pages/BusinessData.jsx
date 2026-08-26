@@ -68,7 +68,7 @@ export default function BusinessData() {
       <div className="card" style={{ marginTop: 8 }}>
         <div className="card-head">最近 30 天明细</div>
         <div style={{ overflowX: 'auto' }}>
-        <table>
+        <table className="compact">
           <thead>
             <tr>
               <th>日期</th>
