@@ -57,7 +57,7 @@ export async function listPosts({ page = 1, limit = 20, status } = {}) {
 }
 
 export async function passPost(id) {
-  const r = await adminCall('/admin/post/doPass', { method: 'POST', body: { id } });
+  const r = await adminCall('/admin/post/pass', { method: 'POST', body: { _pk: id } });
   logReview(id, 'pass');
   return r;
 }
