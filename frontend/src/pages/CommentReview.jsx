@@ -26,6 +26,8 @@ export default function CommentReview() {
   const [autoBusy, setAutoBusy] = useState(false);
   const [autoResult, setAutoResult] = useState(null);
   const [actingId, setActingId] = useState(null);
+  const [sweepBusy, setSweepBusy] = useState(false);
+  const [sweepProgress, setSweepProgress] = useState(null); // { round, reviewed, passed, rejected, details: [] }
 
   const sources = status.sources?.length ? status.sources : FALLBACK_SOURCES;
   const cur = sources.find((s) => s.key === source) || sources[0];
@@ -43,7 +45,7 @@ export default function CommentReview() {
   useEffect(() => {
     api.commentReviewStatus().then(setStatus).catch(() => {});
   }, []);
-  useEffect(() => { load(); setSelected({}); setSuggestions({}); setAutoResult(null); }, [page, source]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); setSelected({}); setSuggestions({}); setAutoResult(null); setSweepProgress(null); }, [page, source]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setPage(1); }, [source]);
 
   const selectedIds = Object.keys(selected).filter((id) => selected[id]).map(Number);
@@ -75,6 +77,7 @@ export default function CommentReview() {
     setAutoBusy(true);
     setError('');
     setAutoResult(null);
+    setSweepProgress(null);
     try {
       const r = await api.autoReviewComments(source, 50);
       setAutoResult(r);
@@ -85,6 +88,38 @@ export default function CommentReview() {
       setError(err.message);
     } finally {
       setAutoBusy(false);
+    }
+  };
+
+  const MAX_SWEEP_ROUNDS = 30; // 安全阀:最多处理 30*100=3000 条,防止极端情况下无限循环
+  const runSweep = async () => {
+    setSweepBusy(true);
+    setError('');
+    setAutoResult(null);
+    setSweepProgress({ round: 0, reviewed: 0, passed: 0, rejected: 0, details: [] });
+    try {
+      let round = 0;
+      for (;;) {
+        round += 1;
+        const r = await api.autoReviewComments(source, 100);
+        setSweepProgress((prev) => ({
+          round,
+          reviewed: prev.reviewed + r.reviewed,
+          passed: prev.passed + r.passed,
+          rejected: prev.rejected + r.rejected,
+          details: [...prev.details, ...(r.details || [])],
+        }));
+        api.listPendingComments(source, 1, 1).then((d) => setTotal(d.total || 0)).catch(() => {});
+        if (!r.reviewed || round >= MAX_SWEEP_ROUNDS) break;
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+      load();
+      setSelected({});
+      setSuggestions({});
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSweepBusy(false);
     }
   };
 
@@ -176,8 +211,11 @@ export default function CommentReview() {
           <button className="ghost-btn" onClick={runAiReview} disabled={aiBusy || !list.length}>
             {aiBusy ? 'AI 审核中…' : 'AI 给出建议(不自动执行)'}
           </button>
-          <button className="btn-primary" onClick={runAutoReview} disabled={autoBusy}>
-            {autoBusy ? '自动审核中…' : '一键 AI 自动审核并执行'}
+          <button className="btn-primary" onClick={runAutoReview} disabled={autoBusy || sweepBusy}>
+            {autoBusy ? '自动审核中…' : '一键 AI 自动审核并执行(单批 50 条)'}
+          </button>
+          <button className="btn-primary" onClick={runSweep} disabled={autoBusy || sweepBusy}>
+            {sweepBusy ? `批量清空中…(第 ${sweepProgress?.round || 0} 轮)` : '全部自动审核(循环清空队列)'}
           </button>
           {selectedIds.length > 0 && (
             <>
@@ -187,6 +225,27 @@ export default function CommentReview() {
           )}
         </div>
         {error && <div className="error" style={{ margin: '0 20px 16px' }}>{error}</div>}
+        {sweepProgress && (
+          <div style={{ margin: '0 20px 16px' }}>
+            <div className="small" style={{ color: 'var(--text-faint)', marginBottom: 8 }}>
+              {sweepBusy ? '批量处理中…' : '批量处理完成'} · 共 {sweepProgress.round} 轮 · 累计审核 {sweepProgress.reviewed} 条 · 通过 {sweepProgress.passed} · {rejectLabel} {sweepProgress.rejected}
+              {!sweepBusy && sweepProgress.round >= MAX_SWEEP_ROUNDS && sweepProgress.reviewed > 0 && '(已达单次上限,若仍有剩余可再次点击继续)'}
+            </div>
+            {sweepProgress.details.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
+                {sweepProgress.details.map((d, i) => (
+                  <div key={`${d.id}-${i}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13 }}>
+                    <span className="muted" style={{ width: 60, flexShrink: 0 }}>#{d.id}</span>
+                    <span className={`status-pill ${d.action === 'pass' ? 'posted' : 'failed'}`} style={{ flexShrink: 0 }}>
+                      {d.action === 'pass' ? '已通过' : `已${rejectLabel}`}
+                    </span>
+                    <span className="muted">{d.reason}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {autoResult && (
           <div style={{ margin: '0 20px 16px' }}>
             <div className="small" style={{ color: 'var(--text-faint)', marginBottom: 8 }}>

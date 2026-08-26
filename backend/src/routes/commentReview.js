@@ -40,7 +40,8 @@ function buildReviewPrompt(items) {
 }
 
 async function askAi(items) {
-  let text = await chat({ prompt: buildReviewPrompt(items), maxTokens: 2000 });
+  const maxTokens = Math.min(6000, 400 + items.length * 60);
+  let text = await chat({ prompt: buildReviewPrompt(items), maxTokens });
   text = text.replace(/^```[a-zA-Z]*\s*\n?/, '').replace(/\n?```$/, '').trim();
   return JSON.parse(text);
 }
