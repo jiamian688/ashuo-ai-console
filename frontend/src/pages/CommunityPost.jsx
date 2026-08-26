@@ -112,7 +112,7 @@ export default function CommunityPost() {
             )}
           </div>
           <div>
-            <div className="muted small" style={{ marginBottom: 6 }}>图片(选填,目前只支持单图)</div>
+            <div className="muted small" style={{ marginBottom: 6 }}>封面图(选填,后台只有这一个图片位,不是相册)</div>
             {imagePreview ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <img src={imagePreview} alt="" style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 8 }} />
