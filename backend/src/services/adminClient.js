@@ -88,17 +88,17 @@ export async function adminUploadFile(buffer, filename, mimetype) {
     return { resp, data };
   };
 
-  let { data } = await doUpload(token);
+  let { resp, data } = await doUpload(token);
   if (data.code !== 0 && autoLoginConfigured()) {
     cachedToken = null;
     try {
       const freshToken = await login();
-      ({ data } = await doUpload(freshToken));
+      ({ resp, data } = await doUpload(freshToken));
     } catch (loginErr) {
       throw new Error(`${data.msg || '上传失败'}(重新登录也失败: ${loginErr.message})`);
     }
   }
-  if (data.code !== 0) throw new Error(data.msg || '图片上传失败');
+  if (data.code !== 0) throw new Error(data.msg || `图片上传失败(HTTP ${resp.status}, code=${data.code})`);
   return data.data; // { url, media_url, width, height, ... }
 }
 
