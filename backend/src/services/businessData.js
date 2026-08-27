@@ -38,13 +38,14 @@ function normalize(raw) {
   };
 }
 
-// 财务管理→订单列表按天筛选「设备=android」拿当天下单量(不筛状态,和「拉单量」口径一致:所有下单,不只成功的)。
+// 财务管理→订单列表按天筛选「设备=android + 状态=支付成功」拿当天安卓成功订单量。
 async function getAndroidOrderCount(date) {
   const data = await adminCall('/admin/orders/listAjax', {
     params: {
       page: 1,
       limit: 1,
       'where[orders.oauth_type]': 'android',
+      'where[orders.status]': 3,
       'between[orders.created_at][from]': `${date} 00:00:00`,
       'between[orders.created_at][to]': `${date} 23:59:59`,
     },
