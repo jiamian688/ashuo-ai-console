@@ -15,6 +15,7 @@ import commentReviewRouter from './routes/commentReview.js';
 import businessDataRouter from './routes/businessData.js';
 import usersRouter from './routes/users.js';
 import postAdminRouter from './routes/postAdmin.js';
+import sheetExportRouter from './routes/sheetExport.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -57,6 +58,7 @@ app.use('/api/social', requireAuth, socialRouter);
 app.use('/api/comic', requireAuth, comicRouter);
 app.use('/api/comment-review', requireAuth, commentReviewRouter);
 app.use('/api/business-data', requireAuth, businessDataRouter);
+app.use('/api/sheet-export', sheetExportRouter); // 不走 requireAuth,自己校验 token(见路由文件)
 app.use('/api/users', requireAuth, requireAdmin, usersRouter);
 app.use('/api/post-admin', requireAuth, postAdminRouter);
 
