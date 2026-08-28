@@ -57,8 +57,8 @@ export function getTodayReviewStats() {
   };
 }
 
-// 后台目前有 4 个评论模块。mv/post/porn 三个走「未审核→通过/拒绝」的审核队列;
-// book(书评)后台没有审核队列,评论发出即可见,唯一的管理手段是删除,所以拒绝=删除。
+// 后台目前有 4 个评论模块。mv/post/porn 三个有「未审核→通过」的审核队列(通过还是走 doPass/passAll);
+// book(书评)没有审核队列,评论发出即可见。四个模块的「拒绝」现在统一是删除(见 rejectComment 的说明)。
 const SOURCES = {
   mv: { resource: 'mvcomment', label: '视频评论', contentField: 'content', titleField: 'mv_title', hasApprovalFlow: true },
   post: { resource: 'postcomment', label: '社区评论', contentField: 'comment', titleField: null, hasApprovalFlow: true },
@@ -125,15 +125,12 @@ export async function passComments(sourceKey, ids, reason) {
   return r;
 }
 
-// 有审核队列的模块:「拒绝」= 打回并记录原因;book 没有审核队列:「拒绝」= 直接删除。
+// 「拒绝」统一 = 直接删除。之前 mv/post/porn 用的 doReject/batchRefuse 接口调用能成功(200),
+// 但实测不会真的把评论从前台隐藏(拒绝原因也不落地),等于没生效——书评那边的删除倒是真实验证过有效,
+// 所以四个模块全部统一走删除,批量也不再猜从没验证过的 delAll,一律逐条删除保证真的生效。
 export async function rejectComment(sourceKey, id, reason) {
   const cfg = sourceConfig(sourceKey);
-  let r;
-  if (cfg.hasApprovalFlow) {
-    r = await call(`/admin/${cfg.resource}/doReject`, { method: 'POST', body: { id, refused: reason || '' } });
-  } else {
-    r = await call(`/admin/${cfg.resource}/del`, { method: 'POST', body: { _pk: id } });
-  }
+  const r = await call(`/admin/${cfg.resource}/del`, { method: 'POST', body: { _pk: id } });
   logReview(sourceKey, [id], 'reject', reason);
   return r;
 }
@@ -141,10 +138,8 @@ export async function rejectComment(sourceKey, id, reason) {
 export async function rejectComments(sourceKey, ids, reason) {
   const cfg = sourceConfig(sourceKey);
   let r;
-  if (cfg.hasApprovalFlow) {
-    r = await call(`/admin/${cfg.resource}/batchRefuse`, { method: 'POST', body: { comment_ids: ids.join(','), refused: reason || '' } });
-  } else {
-    r = await call(`/admin/${cfg.resource}/delAll`, { method: 'POST', body: { value: ids.join(',') } });
+  for (const id of ids) {
+    r = await call(`/admin/${cfg.resource}/del`, { method: 'POST', body: { _pk: id } });
   }
   logReview(sourceKey, ids, 'reject', reason);
   return r;

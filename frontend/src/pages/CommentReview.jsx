@@ -42,7 +42,7 @@ export default function CommentReview() {
 
   const sources = status.sources?.length ? status.sources : FALLBACK_SOURCES;
   const cur = sources.find((s) => s.key === source) || sources[0];
-  const rejectLabel = cur?.hasApprovalFlow ? '拒绝' : '删除';
+  const rejectLabel = '删除'; // 所有模块的"拒绝"现在都是真删除(doReject/batchRefuse 调用成功但不会真的隐藏前台内容)
 
   const load = () => {
     setLoading(true);
@@ -161,10 +161,8 @@ export default function CommentReview() {
   };
 
   const doReject = async (id) => {
-    const reason = cur?.hasApprovalFlow
-      ? (window.prompt('拒绝理由(可留空):', suggestions[id]?.reason || '') ?? '')
-      : (window.confirm('确认删除这条评论?') ? '' : null);
-    if (reason === null) return;
+    if (!window.confirm('确认删除这条评论?')) return;
+    const reason = window.prompt('删除理由(可留空,只存本地记录):', suggestions[id]?.reason || '') ?? '';
     setActingId(id);
     try {
       await api.rejectComment(source, id, reason);
@@ -191,12 +189,8 @@ export default function CommentReview() {
 
   const batchReject = async () => {
     if (!selectedIds.length) return;
-    let reason = '';
-    if (cur?.hasApprovalFlow) {
-      reason = window.prompt(`批量拒绝 ${selectedIds.length} 条评论,理由(可留空):`, '') ?? '';
-    } else if (!window.confirm(`确认删除选中的 ${selectedIds.length} 条评论?`)) {
-      return;
-    }
+    if (!window.confirm(`确认删除选中的 ${selectedIds.length} 条评论?`)) return;
+    const reason = window.prompt('删除理由(可留空,只存本地记录):', '') ?? '';
     try {
       await api.rejectComments(source, selectedIds, reason);
       load();
