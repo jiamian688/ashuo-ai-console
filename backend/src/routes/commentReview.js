@@ -80,24 +80,45 @@ router.post('/auto-review', async (req, res) => {
   try {
     const source = req.body?.source || 'mv';
     const limit = Number(req.body?.limit) || 50;
+    const onlyToday = !!req.body?.onlyToday;
     const { list, hasApprovalFlow } = await listComments(source, { page: 1, limit, status: 0 });
-    if (!list.length) return res.json({ reviewed: 0, passed: 0, rejected: 0, details: [] });
+    if (!list.length) return res.json({ reviewed: 0, passed: 0, rejected: 0, skipped: 0, details: [] });
 
-    const items = list.map((it) => ({ id: it.id, content: it.content, title: it.title }));
+    // 只审核今天(北京时间)发的评论;更早的先跳过不动,避免动到往期存量。
+    let targetList = list;
+    let skipped = 0;
+    if (onlyToday) {
+      const todayStr = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+      targetList = list.filter((it) => String(it.created_at || '').slice(0, 10) === todayStr);
+      skipped = list.length - targetList.length;
+    }
+    if (!targetList.length) return res.json({ reviewed: 0, passed: 0, rejected: 0, skipped, details: [] });
+
+    const items = targetList.map((it) => ({ id: it.id, content: it.content, title: it.title }));
     const suggestions = await askAi(items);
 
     const passIds = suggestions.filter((s) => s.action === 'pass').map((s) => s.id);
     const rejectItems = suggestions.filter((s) => s.action === 'reject');
 
     if (hasApprovalFlow && passIds.length) await passComments(source, passIds);
+
+    // 按拒绝理由分组批量执行(而不是一条条单独发请求),减少网络往返、提速。
+    const byReason = new Map();
     for (const r of rejectItems) {
-      await rejectComment(source, r.id, r.reason || '');
+      const key = r.reason || '违规内容';
+      if (!byReason.has(key)) byReason.set(key, []);
+      byReason.get(key).push(r.id);
+    }
+    for (const [reason, ids] of byReason) {
+      if (ids.length === 1) await rejectComment(source, ids[0], reason);
+      else await rejectComments(source, ids, reason);
     }
 
     res.json({
       reviewed: suggestions.length,
       passed: hasApprovalFlow ? passIds.length : 0,
       rejected: rejectItems.length,
+      skipped,
       details: suggestions,
     });
   } catch (err) {
