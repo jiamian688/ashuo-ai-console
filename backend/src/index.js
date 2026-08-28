@@ -16,6 +16,7 @@ import businessDataRouter from './routes/businessData.js';
 import usersRouter from './routes/users.js';
 import postAdminRouter from './routes/postAdmin.js';
 import sheetExportRouter from './routes/sheetExport.js';
+import { startCommentAutoReviewScheduler } from './services/commentReviewScheduler.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -65,3 +66,4 @@ app.use('/api/post-admin', requireAuth, postAdminRouter);
 // 本地用 BACKEND_PORT(避开被注入的 PORT);Render 等平台注入 PORT,回退到它
 const PORT = process.env.BACKEND_PORT || process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`✅ backend running on http://localhost:${PORT}`));
+startCommentAutoReviewScheduler();
