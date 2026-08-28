@@ -19,6 +19,17 @@ function getReviewedIdSet(sourceKey) {
   return new Set(rows.map((r) => r.item_id));
 }
 
+// 我们自己审核过的记录(不是问后台的状态,是本地日志),给"已审核"这个视图用,
+// 避免用户搞不清哪些已经处理过、重复点一遍。
+export function listReviewLog(sourceKey, { page = 1, limit = 20 } = {}) {
+  const offset = (page - 1) * limit;
+  const rows = db.prepare(
+    'SELECT item_id AS id, action, reason, created_at FROM comment_review_log WHERE source = ? ORDER BY id DESC LIMIT ? OFFSET ?'
+  ).all(sourceKey, limit, offset);
+  const total = db.prepare('SELECT COUNT(*) AS n FROM comment_review_log WHERE source = ?').get(sourceKey).n;
+  return { list: rows, total };
+}
+
 // 当天(按北京时间 UTC+8 折算)评论审核汇总:总数/通过/拒绝,以及按模块拆分。
 export function getTodayReviewStats() {
   const rows = db.prepare(`

@@ -9,6 +9,7 @@ import {
   rejectComment,
   rejectComments,
   getTodayReviewStats,
+  listReviewLog,
 } from '../services/commentAdmin.js';
 
 const router = Router();
@@ -19,6 +20,17 @@ router.get('/status', (req, res) => {
 
 router.get('/today-stats', (req, res) => {
   res.json(getTodayReviewStats());
+});
+
+// 我们自己审核过的记录(本地日志,不是问后台状态),避免重复审核。
+router.get('/history', (req, res) => {
+  try {
+    const { source = 'mv', page = 1, limit = 20 } = req.query;
+    const data = listReviewLog(source, { page: Number(page), limit: Number(limit) });
+    res.json(data);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // status: 未提供时,有审核队列的默认只拉未审核(0);book 没有审核队列,忽略该参数。

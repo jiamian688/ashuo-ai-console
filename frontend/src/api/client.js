@@ -102,6 +102,7 @@ export const api = {
   commentReviewStatus: () => request('/comment-review/status'),
   commentReviewTodayStats: () => request('/comment-review/today-stats'),
   listPendingComments: (source, page = 1, limit = 20) => request(`/comment-review/list?source=${source}&page=${page}&limit=${limit}`),
+  commentReviewHistory: (source, page = 1, limit = 20) => request(`/comment-review/history?source=${source}&page=${page}&limit=${limit}`),
   aiReviewComments: (items) => request('/comment-review/ai-review', { method: 'POST', body: JSON.stringify({ items }) }),
   autoReviewComments: (source, limit = 50, onlyToday = false) => request('/comment-review/auto-review', { method: 'POST', body: JSON.stringify({ source, limit, onlyToday }) }),
   passComment: (source, id) => request('/comment-review/pass', { method: 'POST', body: JSON.stringify({ source, id }) }),

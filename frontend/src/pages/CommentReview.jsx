@@ -30,6 +30,11 @@ export default function CommentReview() {
   const [sweepProgress, setSweepProgress] = useState(null); // { round, reviewed, passed, rejected, details: [] }
   const [todayStats, setTodayStats] = useState(null);
   const [onlyToday, setOnlyToday] = useState(true); // 只自动审核今天发的评论,往期存量不动
+  const [view, setView] = useState('pending'); // 'pending' | 'history'
+  const [historyList, setHistoryList] = useState([]);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const loadTodayStats = () => {
     api.commentReviewTodayStats().then(setTodayStats).catch(() => {});
@@ -48,12 +53,21 @@ export default function CommentReview() {
       .finally(() => setLoading(false));
   };
 
+  const loadHistory = () => {
+    setHistoryLoading(true);
+    api.commentReviewHistory(source, historyPage, limit)
+      .then((d) => { setHistoryList(d.list || []); setHistoryTotal(d.total || 0); })
+      .catch((err) => setError(err.message))
+      .finally(() => setHistoryLoading(false));
+  };
+
   useEffect(() => {
     api.commentReviewStatus().then(setStatus).catch(() => {});
     loadTodayStats();
   }, []);
-  useEffect(() => { load(); setSelected({}); setSuggestions({}); setAutoResult(null); setSweepProgress(null); }, [page, source]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { setPage(1); }, [source]);
+  useEffect(() => { if (view === 'pending') { load(); setSelected({}); setSuggestions({}); setAutoResult(null); setSweepProgress(null); } }, [page, source, view]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (view === 'history') loadHistory(); }, [historyPage, source, view]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setPage(1); setHistoryPage(1); }, [source]);
 
   const selectedIds = Object.keys(selected).filter((id) => selected[id]).map(Number);
 
@@ -121,7 +135,7 @@ export default function CommentReview() {
         api.listPendingComments(source, 1, 1).then((d) => setTotal(d.total || 0)).catch(() => {});
         loadTodayStats();
         if (!r.reviewed || round >= MAX_SWEEP_ROUNDS) break;
-        await new Promise((resolve) => setTimeout(resolve, 400));
+        await new Promise((resolve) => setTimeout(resolve, 100)); // 拒绝已经改成按理由批量提交,这里稍等一下就够了
       }
       load();
       setSelected({});
@@ -241,127 +255,181 @@ export default function CommentReview() {
             </button>
           ))}
         </div>
+        <div className="card-body" style={{ display: 'flex', gap: 8, paddingTop: 0, paddingBottom: 0 }}>
+          <button className={view === 'pending' ? 'btn-primary' : 'ghost-btn'} style={{ padding: '6px 16px' }} onClick={() => setView('pending')}>未审核</button>
+          <button className={view === 'history' ? 'btn-primary' : 'ghost-btn'} style={{ padding: '6px 16px' }} onClick={() => setView('history')}>已审核记录</button>
+        </div>
         <div className="card-head">
-          {cur?.label || '评论'} <span className="muted">· {cur?.hasApprovalFlow ? `共 ${total} 条未审核` : `最近 ${total} 条 · 无审核队列,仅可删除违规内容`}</span>
+          {cur?.label || '评论'}{' '}
+          <span className="muted">
+            {view === 'pending'
+              ? (cur?.hasApprovalFlow ? `· 共 ${total} 条未审核` : `· 最近 ${total} 条 · 无审核队列,仅可删除违规内容`)
+              : `· 共 ${historyTotal} 条已审核记录`}
+          </span>
         </div>
-        <div className="card-body" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button className="ghost-btn" onClick={load} disabled={loading}>{loading ? '刷新中…' : '刷新'}</button>
-          <button className="ghost-btn" onClick={runAiReview} disabled={aiBusy || !list.length}>
-            {aiBusy ? 'AI 审核中…' : 'AI 给出建议(不自动执行)'}
-          </button>
-          <button className="btn-primary" onClick={runAutoReview} disabled={autoBusy || sweepBusy}>
-            {autoBusy ? '自动审核中…' : '一键 AI 自动审核并执行(单批 50 条)'}
-          </button>
-          <button className="btn-primary" onClick={runSweep} disabled={autoBusy || sweepBusy}>
-            {sweepBusy ? `批量清空中…(第 ${sweepProgress?.round || 0} 轮)` : '全部自动审核(循环清空队列)'}
-          </button>
-          <label className="small" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-soft)' }}>
-            <input type="checkbox" checked={onlyToday} onChange={(e) => setOnlyToday(e.target.checked)} disabled={autoBusy || sweepBusy} />
-            只审核今天发的评论(往期存量不动)
-          </label>
-          {selectedIds.length > 0 && (
-            <>
-              {cur?.hasApprovalFlow && <button className="ghost-btn" onClick={batchPass}>批量通过 ({selectedIds.length})</button>}
-              <button className="ghost-btn" onClick={batchReject}>批量{rejectLabel} ({selectedIds.length})</button>
-            </>
-          )}
-        </div>
-        {error && <div className="error" style={{ margin: '0 20px 16px' }}>{error}</div>}
-        {sweepProgress && (
-          <div style={{ margin: '0 20px 16px' }}>
-            <div className="small" style={{ color: 'var(--text-faint)', marginBottom: 8 }}>
-              {sweepBusy ? '批量处理中…' : '批量处理完成'} · 共 {sweepProgress.round} 轮 · 累计审核 {sweepProgress.reviewed} 条 · 通过 {sweepProgress.passed} · {rejectLabel} {sweepProgress.rejected}
-              {onlyToday && sweepProgress.skipped > 0 && ` · 跳过 ${sweepProgress.skipped} 条(非今天)`}
-              {!sweepBusy && sweepProgress.round >= MAX_SWEEP_ROUNDS && sweepProgress.reviewed > 0 && '(已达单次上限,若仍有剩余可再次点击继续)'}
-            </div>
-            {sweepProgress.details.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
-                {sweepProgress.details.map((d, i) => (
-                  <div key={`${d.id}-${i}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13 }}>
-                    <span className="muted" style={{ width: 60, flexShrink: 0 }}>#{d.id}</span>
-                    <span className={`status-pill ${d.action === 'pass' ? 'posted' : 'failed'}`} style={{ flexShrink: 0 }}>
-                      {d.action === 'pass' ? '已通过' : `已${rejectLabel}`}
-                    </span>
-                    <span className="muted">{d.reason}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        {autoResult && (
-          <div style={{ margin: '0 20px 16px' }}>
-            <div className="small" style={{ color: 'var(--text-faint)', marginBottom: 8 }}>
-              本轮自动审核 {autoResult.reviewed} 条 · 通过 {autoResult.passed} · {rejectLabel} {autoResult.rejected}
-              {onlyToday && autoResult.skipped > 0 && ` · 跳过 ${autoResult.skipped} 条(非今天)`}
-            </div>
-            {autoResult.details?.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
-                {autoResult.details.map((d) => (
-                  <div key={d.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13 }}>
-                    <span className="muted" style={{ width: 60, flexShrink: 0 }}>#{d.id}</span>
-                    <span className={`status-pill ${d.action === 'pass' ? 'posted' : 'failed'}`} style={{ flexShrink: 0 }}>
-                      {d.action === 'pass' ? `已${'通过'}` : `已${rejectLabel}`}
-                    </span>
-                    <span className="muted">{d.reason}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {error && <div className="error" style={{ margin: '16px 20px 0' }}>{error}</div>}
 
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: 36 }}>
-                <input type="checkbox" checked={list.length > 0 && selectedIds.length === list.length} onChange={(e) => toggleAll(e.target.checked)} />
-              </th>
-              <th style={{ width: 70 }}>ID</th>
-              <th>内容标题</th>
-              <th>评论内容</th>
-              <th>用户</th>
-              <th>AI 建议</th>
-              <th style={{ textAlign: 'right' }}>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!loading && list.length === 0 && (
-              <tr><td colSpan={7} className="empty" style={{ padding: 26 }}>暂无{cur?.hasApprovalFlow ? '待审核' : ''}评论</td></tr>
+        {view === 'pending' ? (
+          <>
+            <div className="card-body" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button className="ghost-btn" onClick={load} disabled={loading}>{loading ? '刷新中…' : '刷新'}</button>
+              <button className="ghost-btn" onClick={runAiReview} disabled={aiBusy || !list.length}>
+                {aiBusy ? 'AI 审核中…' : 'AI 给出建议(不自动执行)'}
+              </button>
+              <button className="btn-primary" onClick={runAutoReview} disabled={autoBusy || sweepBusy}>
+                {autoBusy ? '自动审核中…' : '一键 AI 自动审核并执行(单批 50 条)'}
+              </button>
+              <button className="btn-primary" onClick={runSweep} disabled={autoBusy || sweepBusy}>
+                {sweepBusy ? `批量清空中…(第 ${sweepProgress?.round || 0} 轮)` : '全部自动审核(循环清空队列)'}
+              </button>
+              <label className="small" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-soft)' }}>
+                <input type="checkbox" checked={onlyToday} onChange={(e) => setOnlyToday(e.target.checked)} disabled={autoBusy || sweepBusy} />
+                只审核今天发的评论(往期存量不动)
+              </label>
+              {selectedIds.length > 0 && (
+                <>
+                  {cur?.hasApprovalFlow && <button className="ghost-btn" onClick={batchPass}>批量通过 ({selectedIds.length})</button>}
+                  <button className="ghost-btn" onClick={batchReject}>批量{rejectLabel} ({selectedIds.length})</button>
+                </>
+              )}
+            </div>
+            {sweepProgress && (
+              <div style={{ margin: '0 20px 16px' }}>
+                <div className="small" style={{ color: 'var(--text-faint)', marginBottom: 8 }}>
+                  {sweepBusy ? '批量处理中…' : '批量处理完成'} · 共 {sweepProgress.round} 轮 · 累计审核 {sweepProgress.reviewed} 条 · 通过 {sweepProgress.passed} · {rejectLabel} {sweepProgress.rejected}
+                  {onlyToday && sweepProgress.skipped > 0 && ` · 跳过 ${sweepProgress.skipped} 条(非今天)`}
+                  {!sweepBusy && sweepProgress.round >= MAX_SWEEP_ROUNDS && sweepProgress.reviewed > 0 && '(已达单次上限,若仍有剩余可再次点击继续)'}
+                </div>
+                {sweepProgress.details.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
+                    {sweepProgress.details.map((d, i) => (
+                      <div key={`${d.id}-${i}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13 }}>
+                        <span className="muted" style={{ width: 60, flexShrink: 0 }}>#{d.id}</span>
+                        <span className={`status-pill ${d.action === 'pass' ? 'posted' : 'failed'}`} style={{ flexShrink: 0 }}>
+                          {d.action === 'pass' ? '已通过' : `已${rejectLabel}`}
+                        </span>
+                        <span className="muted">{d.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
-            {list.map((c) => {
-              const sug = suggestions[c.id];
-              return (
-                <tr key={c.id}>
-                  <td><input type="checkbox" checked={!!selected[c.id]} onChange={(e) => setSelected((s) => ({ ...s, [c.id]: e.target.checked }))} /></td>
-                  <td>{c.id}</td>
-                  <td style={{ maxWidth: 220 }} title={c.title}>{c.title || '—'}</td>
-                  <td>{c.content}</td>
-                  <td>{c.nickname || '—'}</td>
-                  <td>
-                    {sug
-                      ? <span className={`status-pill ${sug.action === 'pass' ? 'posted' : 'failed'}`}>{ACTION_LABEL[sug.action] || sug.action} · {sug.reason}</span>
-                      : <span className="muted">—</span>}
-                  </td>
-                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    {cur?.hasApprovalFlow && (
-                      <span className="link" style={{ cursor: 'pointer', marginRight: 12 }} onClick={() => doPass(c.id)}>
-                        {actingId === c.id ? '处理中…' : '通过'}
-                      </span>
-                    )}
-                    <span className="link" style={{ cursor: 'pointer' }} onClick={() => doReject(c.id)}>{rejectLabel}</span>
-                  </td>
+            {autoResult && (
+              <div style={{ margin: '0 20px 16px' }}>
+                <div className="small" style={{ color: 'var(--text-faint)', marginBottom: 8 }}>
+                  本轮自动审核 {autoResult.reviewed} 条 · 通过 {autoResult.passed} · {rejectLabel} {autoResult.rejected}
+                  {onlyToday && autoResult.skipped > 0 && ` · 跳过 ${autoResult.skipped} 条(非今天)`}
+                </div>
+                {autoResult.details?.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
+                    {autoResult.details.map((d) => (
+                      <div key={d.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13 }}>
+                        <span className="muted" style={{ width: 60, flexShrink: 0 }}>#{d.id}</span>
+                        <span className={`status-pill ${d.action === 'pass' ? 'posted' : 'failed'}`} style={{ flexShrink: 0 }}>
+                          {d.action === 'pass' ? `已${'通过'}` : `已${rejectLabel}`}
+                        </span>
+                        <span className="muted">{d.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 36 }}>
+                    <input type="checkbox" checked={list.length > 0 && selectedIds.length === list.length} onChange={(e) => toggleAll(e.target.checked)} />
+                  </th>
+                  <th style={{ width: 70 }}>ID</th>
+                  <th>内容标题</th>
+                  <th>评论内容</th>
+                  <th>用户</th>
+                  <th>创建时间</th>
+                  <th>AI 建议</th>
+                  <th style={{ textAlign: 'right' }}>操作</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {!loading && list.length === 0 && (
+                  <tr><td colSpan={8} className="empty" style={{ padding: 26 }}>暂无{cur?.hasApprovalFlow ? '待审核' : ''}评论</td></tr>
+                )}
+                {list.map((c) => {
+                  const sug = suggestions[c.id];
+                  return (
+                    <tr key={c.id}>
+                      <td><input type="checkbox" checked={!!selected[c.id]} onChange={(e) => setSelected((s) => ({ ...s, [c.id]: e.target.checked }))} /></td>
+                      <td>{c.id}</td>
+                      <td style={{ maxWidth: 220 }} title={c.title}>{c.title || '—'}</td>
+                      <td>{c.content}</td>
+                      <td>{c.nickname || '—'}</td>
+                      <td className="muted" style={{ whiteSpace: 'nowrap' }}>{c.created_at || '—'}</td>
+                      <td>
+                        {sug
+                          ? <span className={`status-pill ${sug.action === 'pass' ? 'posted' : 'failed'}`}>{ACTION_LABEL[sug.action] || sug.action} · {sug.reason}</span>
+                          : <span className="muted">—</span>}
+                      </td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        {cur?.hasApprovalFlow && (
+                          <span className="link" style={{ cursor: 'pointer', marginRight: 12 }} onClick={() => doPass(c.id)}>
+                            {actingId === c.id ? '处理中…' : '通过'}
+                          </span>
+                        )}
+                        <span className="link" style={{ cursor: 'pointer' }} onClick={() => doReject(c.id)}>{rejectLabel}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 20px' }}>
-          <button className="ghost-btn" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>上一页</button>
-          <span className="muted" style={{ alignSelf: 'center' }}>第 {page} 页</span>
-          <button className="ghost-btn" onClick={() => setPage((p) => p + 1)} disabled={page * limit >= total}>下一页</button>
-        </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 20px' }}>
+              <button className="ghost-btn" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>上一页</button>
+              <span className="muted" style={{ alignSelf: 'center' }}>第 {page} 页</span>
+              <button className="ghost-btn" onClick={() => setPage((p) => p + 1)} disabled={page * limit >= total}>下一页</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="card-body" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button className="ghost-btn" onClick={loadHistory} disabled={historyLoading}>{historyLoading ? '刷新中…' : '刷新'}</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 70 }}>ID</th>
+                  <th style={{ width: 100 }}>结果</th>
+                  <th>理由</th>
+                  <th style={{ width: 180 }}>处理时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!historyLoading && historyList.length === 0 && (
+                  <tr><td colSpan={4} className="empty" style={{ padding: 26 }}>还没有审核记录</td></tr>
+                )}
+                {historyList.map((h, i) => (
+                  <tr key={`${h.id}-${h.created_at}-${i}`}>
+                    <td>#{h.id}</td>
+                    <td>
+                      <span className={`status-pill ${h.action === 'pass' ? 'posted' : 'failed'}`}>
+                        {h.action === 'pass' ? '已通过' : `已${rejectLabel}`}
+                      </span>
+                    </td>
+                    <td className="muted">{h.reason || '—'}</td>
+                    <td className="muted" style={{ whiteSpace: 'nowrap' }}>{h.created_at}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 20px' }}>
+              <button className="ghost-btn" onClick={() => setHistoryPage((p) => Math.max(1, p - 1))} disabled={historyPage <= 1}>上一页</button>
+              <span className="muted" style={{ alignSelf: 'center' }}>第 {historyPage} 页</span>
+              <button className="ghost-btn" onClick={() => setHistoryPage((p) => p + 1)} disabled={historyPage * limit >= historyTotal}>下一页</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
