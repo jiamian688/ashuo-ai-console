@@ -109,26 +109,35 @@ router.post('/auto-review', async (req, res) => {
     const items = targetList.map((it) => ({ id: it.id, content: it.content, title: it.title }));
     const suggestions = await askAi(items);
 
-    const passIds = suggestions.filter((s) => s.action === 'pass').map((s) => s.id);
+    const passItems = suggestions.filter((s) => s.action === 'pass');
     const rejectItems = suggestions.filter((s) => s.action === 'reject');
 
-    if (hasApprovalFlow && passIds.length) await passComments(source, passIds);
+    // 通过/拒绝都按 AI 给的理由分组批量执行(而不是一条条单独发请求),
+    // 既提速,也能把每条的理由存进本地日志(而不是丢掉)。
+    const groupByReason = (items) => {
+      const byReason = new Map();
+      for (const r of items) {
+        const key = r.reason || '';
+        if (!byReason.has(key)) byReason.set(key, []);
+        byReason.get(key).push(r.id);
+      }
+      return byReason;
+    };
 
-    // 按拒绝理由分组批量执行(而不是一条条单独发请求),减少网络往返、提速。
-    const byReason = new Map();
-    for (const r of rejectItems) {
-      const key = r.reason || '违规内容';
-      if (!byReason.has(key)) byReason.set(key, []);
-      byReason.get(key).push(r.id);
+    if (hasApprovalFlow && passItems.length) {
+      for (const [reason, ids] of groupByReason(passItems)) {
+        if (ids.length === 1) await passComment(source, ids[0], reason);
+        else await passComments(source, ids, reason);
+      }
     }
-    for (const [reason, ids] of byReason) {
-      if (ids.length === 1) await rejectComment(source, ids[0], reason);
-      else await rejectComments(source, ids, reason);
+    for (const [reason, ids] of groupByReason(rejectItems)) {
+      if (ids.length === 1) await rejectComment(source, ids[0], reason || '违规内容');
+      else await rejectComments(source, ids, reason || '违规内容');
     }
 
     res.json({
       reviewed: suggestions.length,
-      passed: hasApprovalFlow ? passIds.length : 0,
+      passed: hasApprovalFlow ? passItems.length : 0,
       rejected: rejectItems.length,
       skipped,
       details: suggestions,

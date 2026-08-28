@@ -108,19 +108,20 @@ export async function listComments(sourceKey, { page = 1, limit = 20, status } =
   return { list, total: data.count || 0, hasApprovalFlow: cfg.hasApprovalFlow, label: cfg.label };
 }
 
-export async function passComment(sourceKey, id) {
+// reason 只是给本地日志用(方便在"已审核记录"里看到 AI 给的理由),不会传给后台。
+export async function passComment(sourceKey, id, reason) {
   const cfg = sourceConfig(sourceKey);
   if (!cfg.hasApprovalFlow) throw new Error(`${cfg.label}没有审核队列,不需要「通过」`);
   const r = await call(`/admin/${cfg.resource}/doPass`, { method: 'POST', body: { id } });
-  logReview(sourceKey, [id], 'pass');
+  logReview(sourceKey, [id], 'pass', reason);
   return r;
 }
 
-export async function passComments(sourceKey, ids) {
+export async function passComments(sourceKey, ids, reason) {
   const cfg = sourceConfig(sourceKey);
   if (!cfg.hasApprovalFlow) throw new Error(`${cfg.label}没有审核队列,不需要「通过」`);
   const r = await call(`/admin/${cfg.resource}/passAll`, { method: 'POST', body: { ids: ids.join(',') } });
-  logReview(sourceKey, ids, 'pass');
+  logReview(sourceKey, ids, 'pass', reason);
   return r;
 }
 
