@@ -130,9 +130,14 @@ router.post('/auto-review', async (req, res) => {
         else await passComments(source, ids, reason);
       }
     }
-    for (const [reason, ids] of groupByReason(rejectItems)) {
-      if (ids.length === 1) await rejectComment(source, ids[0], reason || '违规内容');
-      else await rejectComments(source, ids, reason || '违规内容');
+    // book 没有真正验证过的批量删除接口(delAll 是猜的,404 过),这个模块删除一律走单条,不批量。
+    if (!hasApprovalFlow) {
+      for (const r of rejectItems) await rejectComment(source, r.id, r.reason || '违规内容');
+    } else {
+      for (const [reason, ids] of groupByReason(rejectItems)) {
+        if (ids.length === 1) await rejectComment(source, ids[0], reason || '违规内容');
+        else await rejectComments(source, ids, reason || '违规内容');
+      }
     }
 
     res.json({
