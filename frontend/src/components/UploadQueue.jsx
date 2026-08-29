@@ -146,7 +146,7 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
     try {
       const form = new FormData();
       form.append('files', it.file);
-      // 关键词 = 上方默认 + 该文件自己的关键词(都填则拼一起,如「肌肉猛男 性爱」;
+      // 关键词 = 上方默认 + 该文件自己的关键词(都填则拼一起,如「巨乳 中出」;
       // 想一一对应就把上方留空,每个文件单独填)
       const kw = [caption.trim(), (it.keyword || '').trim()].filter(Boolean).join(' ');
       if (withCaption && kw) form.append('caption', kw);
@@ -235,7 +235,7 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
           <textarea
             className="text-input"
             style={{ width: '100%', minHeight: 64, resize: 'vertical', marginBottom: 20 }}
-            placeholder="留空则只用每个文件自己的关键词;若填了,会和每个文件的关键词拼在一起(如默认「肌肉猛男」+ 某文件「性爱」→ 肌肉猛男 性爱)"
+            placeholder="留空则只用每个文件自己的关键词;若填了,会和每个文件的关键词拼在一起(如默认「巨乳」+ 某文件「中出」→ 巨乳 中出)"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
           />
