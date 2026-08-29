@@ -16,7 +16,10 @@ const assetsDir = path.join(__dirname, '..', '..', 'assets');
 const TG_MAX = 50 * 1024 * 1024;
 
 // 找固定 logo 水印(放在 backend/assets/ 里,提交进仓库,Render 上也能用)
+// 设 WATERMARK=off(或 0/false/no)则完全不加水印。注意:超过 50MB 的视频仍会转码压缩,
+// 只是不再叠 logo。
 function defaultWatermark() {
+  if (/^(off|0|false|no)$/i.test((process.env.WATERMARK || '').trim())) return null;
   for (const name of ['watermark.png', 'watermark.jpg', 'logo.png']) {
     const p = path.join(assetsDir, name);
     if (fs.existsSync(p)) return p;
