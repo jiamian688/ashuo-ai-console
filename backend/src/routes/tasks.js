@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import db from '../db.js';
-import { postVideoToTelegram, postMediaGroupToTelegram } from '../services/telegram.js';
+import { postVideoToTelegram, postMediaGroupToTelegram, postChannelWithVideoComment } from '../services/telegram.js';
 import { processVideo, extractHighlights } from '../services/ffmpeg.js';
 import { generateChannelCaption, buildCaption } from '../services/ai.js';
 
@@ -187,11 +187,18 @@ async function processTask(id, originalPath, topic) {
       console.error(`[task ${id}] 截图失败:`, e.message);
     }
 
-    // 4) 发布:有图 → 视频+图 一组发;没截到图 → 退化为单条视频
+    // 4) 发布。POST_MODE:
+    //    group(默认)= 旧行为,视频 + 图 + 文案 一组发到频道
+    //    comment     = 频道只发「截图 + 文案」,视频作为该帖子的评论
+    //                  (需先把 bot 拉进频道绑定的讨论组并给发消息权限)
+    //    没截到图时两种模式都退化为「单条视频发频道」
     let result;
     const parseMode = captionHtml ? 'HTML' : undefined;
     const tgCaption = captionHtml || caption; // 配了 PROMO_LINK 就发带链接的 HTML 版
-    if (photos.length >= 1) {
+    const postMode = (process.env.POST_MODE || 'group').toLowerCase();
+    if (postMode === 'comment' && photos.length >= 1) {
+      result = await postChannelWithVideoComment({ videoPath: videoForPost, photoPaths: photos, caption: tgCaption, parseMode });
+    } else if (photos.length >= 1) {
       result = await postMediaGroupToTelegram({ videoPath: videoForPost, photoPaths: photos, caption: tgCaption, parseMode });
     } else {
       result = await postVideoToTelegram({ filePath: videoForPost, caption: tgCaption, parseMode });
