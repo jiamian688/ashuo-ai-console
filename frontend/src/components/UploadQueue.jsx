@@ -231,18 +231,18 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
     <div>
       {withCaption && (
         <>
-          <div className="field-label">默认关键词(可留空 · 想给每个视频单独填,就用下方每行的「关键词N」框,视频1↔关键词1 一一对应)</div>
+          <div className="field-label">默认关键词(可留空 · 会拼到每个视频自己的关键词前面,如「巨乳」+「中出」→「巨乳 中出」)</div>
           <textarea
             className="text-input"
-            style={{ width: '100%', minHeight: 32, resize: 'vertical', marginBottom: 10 }}
-            placeholder="留空则只用每个文件自己的关键词;若填了,会和每个文件的关键词拼在一起(如默认「巨乳」+ 某文件「中出」→ 巨乳 中出)"
+            rows={1}
+            style={{ width: '100%', minHeight: 30, padding: '6px 12px', fontSize: 13, resize: 'vertical', marginBottom: 10 }}
+            placeholder="留空则只用每个文件自己的关键词"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
           />
         </>
       )}
 
-      <div className="field-label">选择视频文件</div>
       <div
         className={`dropzone ${drag ? 'drag' : ''}`}
         onClick={() => inputRef.current?.click()}

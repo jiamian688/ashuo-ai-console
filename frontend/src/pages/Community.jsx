@@ -29,6 +29,16 @@ function fmtDuration(sec) {
 }
 const STATUS_LABEL = { posted: 'posted', queued: 'queued', processing: 'processing', failed: 'failed' };
 
+// posted_at 是不带时区的 UTC 串;按本地时区判断是否为“今天”
+function isToday(s) {
+  if (!s) return false;
+  const iso = (s.includes('T') ? s : s.replace(' ', 'T'));
+  const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  if (isNaN(d.getTime())) return false;
+  const n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+
 export default function Community() {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
@@ -91,9 +101,14 @@ export default function Community() {
     }
   };
 
+  const todayDone = tasks.filter((t) => t.status === 'posted' && isToday(t.posted_at)).length;
+
   return (
     <div className="page">
-      <button className="back-btn" onClick={() => navigate('/')}>← 返回工作台</button>
+      <div className="page-topbar">
+        <button className="back-btn" onClick={() => navigate('/')}>← 返回工作台</button>
+        <div className="today-stat"><b>{todayDone}</b> 今日完成</div>
+      </div>
 
       <div className={`tg-banner ${tg.configured ? 'ok' : 'warn'}`}>
         <span className="dot" style={{ background: tg.configured ? 'var(--green)' : 'var(--amber)' }} />
