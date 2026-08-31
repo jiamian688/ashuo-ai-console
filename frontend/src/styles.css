@@ -276,18 +276,18 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 /* ---------- dropzone ---------- */
-.field-label { font-size: 13px; color: var(--text-soft); margin-bottom: 12px; }
+.field-label { font-size: 13px; color: var(--text-soft); margin-bottom: 6px; }
 .dropzone {
   border: 1.5px dashed var(--border);
-  border-radius: 14px;
-  padding: 48px;
+  border-radius: 10px;
+  padding: 18px;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 .dropzone:hover, .dropzone.drag { border-color: var(--primary); background: var(--primary-soft); }
-.dropzone .big { font-size: 16px; font-weight: 700; }
-.dropzone .small { color: var(--text-faint); font-size: 13px; margin-top: 8px; }
+.dropzone .big { font-size: 14px; font-weight: 700; }
+.dropzone .small { color: var(--text-faint); font-size: 12px; margin-top: 3px; }
 
 /* ---------- upload queue (待上传队列) ---------- */
 .queue-bar {
