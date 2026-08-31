@@ -105,7 +105,7 @@ export default function Community() {
         </button>
       </div>
 
-      <div className="card" style={{ marginTop: 20 }}>
+      <div className="card card--tight" style={{ marginTop: 20 }}>
         <div className="card-head">上传新任务</div>
         <div className="card-body">
           <UploadQueue

@@ -251,6 +251,8 @@ button { font-family: inherit; cursor: pointer; }
 .card-head { padding: 22px 26px; border-bottom: 1px solid var(--border); font-size: 17px; font-weight: 800; }
 .card-head .muted { font-weight: 400; color: var(--text-faint); font-size: 13px; margin-left: 8px; }
 .card-body { padding: 26px; }
+.card--tight .card-head { padding: 12px 20px; font-size: 15px; }
+.card--tight .card-body { padding: 14px 20px; }
 
 /* ---------- telegram banner ---------- */
 .tg-banner {
@@ -280,14 +282,14 @@ button { font-family: inherit; cursor: pointer; }
 .dropzone {
   border: 1.5px dashed var(--border);
   border-radius: 10px;
-  padding: 12px;
+  padding: 10px 14px;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 .dropzone:hover, .dropzone.drag { border-color: var(--primary); background: var(--primary-soft); }
-.dropzone .big { font-size: 14px; font-weight: 700; }
-.dropzone .small { color: var(--text-faint); font-size: 12px; margin-top: 3px; }
+.dropzone .big { font-size: 13px; font-weight: 700; }
+.dropzone .small { color: var(--text-faint); font-size: 12px; font-weight: 400; margin-left: 8px; }
 
 /* ---------- upload queue (待上传队列) ---------- */
 .queue-bar {

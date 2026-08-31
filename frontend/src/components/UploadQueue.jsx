@@ -250,8 +250,7 @@ export default function UploadQueue({ withCaption = false, onUploaded, onViewTas
         onDragLeave={() => setDrag(false)}
         onDrop={(e) => { e.preventDefault(); setDrag(false); addFiles(e.dataTransfer.files); }}
       >
-        <div className="big">拖拽视频到这里 · 或点击选择文件</div>
-        <div className="small">支持多选 · 单文件 ≤ 5 GB</div>
+        <div className="big">拖拽视频到这里 · 或点击选择文件<span className="small">支持多选 · ≤ 5 GB</span></div>
         <input
           ref={inputRef}
           type="file"
