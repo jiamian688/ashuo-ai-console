@@ -402,6 +402,25 @@ tbody td { padding: 18px 26px; font-size: 14px; border-bottom: 1px solid var(--b
 tbody tr:last-child td { border-bottom: none; }
 table.compact thead th { padding: 7px 9px; font-size: 12px; white-space: nowrap; }
 table.compact tbody td { padding: 7px 9px; font-size: 12px; white-space: nowrap; }
+
+/* 竖排表头:列名竖着排,整张表不用横向滚动就能看全 */
+table.daily-detail { table-layout: fixed; width: 100%; }
+table.daily-detail thead th {
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+  vertical-align: bottom;
+  text-align: left;
+  padding: 8px 2px;
+  font-size: 11px;
+  line-height: 1.15;
+}
+table.daily-detail thead th:first-child {
+  writing-mode: horizontal-tb;
+  vertical-align: bottom;
+  width: 82px;
+}
+table.daily-detail tbody td { padding: 6px 2px; font-size: 11px; text-align: right; }
+table.daily-detail tbody td:first-child { text-align: left; white-space: nowrap; color: var(--text-soft); }
 .status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 12px; border-radius: 999px; }
 .status-pill.posted { background: var(--green-soft); color: var(--green); }
 .status-pill.queued, .status-pill.processing { background: var(--primary-soft); color: var(--primary); }
