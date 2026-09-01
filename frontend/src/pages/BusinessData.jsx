@@ -50,13 +50,13 @@ export default function BusinessData() {
             <h2>最新一天数据({today.date})</h2>
             <span className="hint">每日报告次日凌晨才生成,这里是最近已生成的一天,不是实时今天 —— 实时数据看首页顶部</span>
           </div>
-          <div className="stats">
+          <div className="stats stats--compact">
             <div className="stat-card"><div className="stat-icon green">￥</div><div><div className="label">今日收入</div><div className="value">{fmtNum(today.rechargeAmount)}</div></div></div>
             <div className="stat-card"><div className="stat-icon purple">✓</div><div><div className="label">今日新增</div><div className="value">{fmtNum(today.newUsers)}</div></div></div>
             <div className="stat-card"><div className="stat-icon blue">◷</div><div><div className="label">今日活跃</div><div className="value">{fmtNum(today.activeTotal)}</div></div></div>
             <div className="stat-card"><div className="stat-icon amber">%</div><div><div className="label">支付成功率</div><div className="value">{fmtPct(today.rechargeSuccessRate)}</div></div></div>
           </div>
-          <div className="stats">
+          <div className="stats stats--compact">
             <div className="stat-card"><div className="stat-icon green">￥</div><div><div className="label">近 7 天收入</div><div className="value">{fmtNum(sum(last7, 'rechargeAmount'))}</div></div></div>
             <div className="stat-card"><div className="stat-icon green">￥</div><div><div className="label">近 30 天收入</div><div className="value">{fmtNum(sum(last30, 'rechargeAmount'))}</div></div></div>
             <div className="stat-card"><div className="stat-icon purple">✓</div><div><div className="label">近 7 天新增</div><div className="value">{fmtNum(sum(last7, 'newUsers'))}</div></div></div>
@@ -65,7 +65,7 @@ export default function BusinessData() {
         </>
       )}
 
-      <div className="card" style={{ marginTop: 8 }}>
+      <div className="card card--tight" style={{ marginTop: 8 }}>
         <div className="card-head">最近 30 天明细</div>
         <div style={{ overflowX: 'auto' }}>
         <table className="compact daily-detail">

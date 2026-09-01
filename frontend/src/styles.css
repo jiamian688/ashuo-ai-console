@@ -409,18 +409,27 @@ table.daily-detail thead th {
   writing-mode: vertical-rl;
   white-space: nowrap;
   vertical-align: bottom;
-  text-align: left;
-  padding: 8px 2px;
-  font-size: 11px;
+  text-align: center;      /* 竖排文字沿列居中,和下方数据对齐 */
+  padding: 8px 0;
+  font-size: 12px;
   line-height: 1.15;
+  color: var(--text-soft);
 }
 table.daily-detail thead th:first-child {
   writing-mode: horizontal-tb;
+  text-align: left;
   vertical-align: bottom;
-  width: 82px;
+  width: 92px;
 }
-table.daily-detail tbody td { padding: 6px 2px; font-size: 11px; text-align: right; }
-table.daily-detail tbody td:first-child { text-align: left; white-space: nowrap; color: var(--text-soft); }
+table.daily-detail tbody td { padding: 8px 4px; font-size: 13px; text-align: center; }
+table.daily-detail tbody td:first-child { text-align: left; white-space: nowrap; color: var(--text-soft); font-size: 12px; }
+
+/* 紧凑版统计卡:缩小占位 */
+.stats--compact { grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+.stats--compact .stat-card { padding: 9px 12px; gap: 10px; }
+.stats--compact .stat-icon { width: 30px; height: 30px; font-size: 15px; border-radius: 8px; }
+.stats--compact .stat-card .label { font-size: 11px; }
+.stats--compact .stat-card .value { font-size: 17px; }
 .status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 12px; border-radius: 999px; }
 .status-pill.posted { background: var(--green-soft); color: var(--green); }
 .status-pill.queued, .status-pill.processing { background: var(--primary-soft); color: var(--primary); }
