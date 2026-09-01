@@ -404,25 +404,24 @@ tbody tr:last-child td { border-bottom: none; }
 table.compact thead th { padding: 7px 9px; font-size: 12px; white-space: nowrap; }
 table.compact tbody td { padding: 7px 9px; font-size: 12px; white-space: nowrap; }
 
-/* 竖排表头:列名竖着排,整张表不用横向滚动就能看全 */
+/* 明细表:列名换行居中,和下面的数据严格对齐;宽版页面下不用横向滚动 */
 table.daily-detail { table-layout: fixed; width: 100%; }
 table.daily-detail thead th {
-  writing-mode: vertical-rl;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-all;
   vertical-align: bottom;
-  text-align: center;      /* 竖排文字沿列居中,和下方数据对齐 */
-  padding: 8px 10px;
-  font-size: 12px;
-  line-height: 1.15;
+  text-align: center;
+  padding: 8px 6px;
+  font-size: 11px;
+  line-height: 1.25;
   color: var(--text-soft);
 }
 table.daily-detail thead th:first-child {
-  writing-mode: horizontal-tb;
   text-align: left;
-  vertical-align: bottom;
-  width: 92px;
+  width: 96px;
+  word-break: keep-all;
 }
-table.daily-detail tbody td { padding: 11px 10px; font-size: 13px; text-align: center; }
+table.daily-detail tbody td { padding: 11px 6px; font-size: 13px; text-align: center; }
 table.daily-detail tbody td:first-child { text-align: left; white-space: nowrap; color: var(--text-soft); font-size: 12px; }
 
 /* 紧凑版统计卡:缩小占位 */
