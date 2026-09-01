@@ -21,11 +21,36 @@ function buildReviewPrompt(items) {
   );
 }
 
+// grok 常常不听话:给的 JSON 前面带 `**`、`**输出:**`、```json 围栏,或数组后面再补一段说明。
+// 直接 JSON.parse 就会 `Unexpected token '*'` 整轮报错,该模块这一轮等于没审。
+// 这里尽量把 JSON 数组从任意包装里抠出来。
+function extractJsonArray(raw) {
+  let t = String(raw || '').trim();
+  // 去掉任意位置的 ``` / ```json 围栏
+  t = t.replace(/```[a-zA-Z]*\s*/g, '').replace(/```/g, '').trim();
+  try {
+    const v = JSON.parse(t);
+    if (Array.isArray(v)) return v;
+  } catch { /* 落到下面按 [ ] 截取 */ }
+  const s = t.indexOf('[');
+  const e = t.lastIndexOf(']');
+  if (s !== -1 && e > s) {
+    try {
+      const v = JSON.parse(t.slice(s, e + 1));
+      if (Array.isArray(v)) return v;
+    } catch { /* 继续抛错 */ }
+  }
+  throw new Error('AI 返回无法解析为 JSON 数组: ' + t.slice(0, 200));
+}
+
 export async function askAi(items) {
   const maxTokens = Math.min(6000, 400 + items.length * 60);
-  let text = await chat({ prompt: buildReviewPrompt(items), maxTokens });
-  text = text.replace(/^```[a-zA-Z]*\s*\n?/, '').replace(/\n?```$/, '').trim();
-  return JSON.parse(text);
+  const text = await chat({ prompt: buildReviewPrompt(items), maxTokens });
+  const arr = extractJsonArray(text);
+  // 只保留结构合法的建议,防止个别脏元素影响后续 filter/执行
+  return arr.filter(
+    (s) => s && s.id != null && (s.action === 'pass' || s.action === 'reject')
+  );
 }
 
 function groupByReason(items) {

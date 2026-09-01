@@ -26,9 +26,8 @@ async function runOnce() {
         if (!r.reviewed || round >= 20) break;
         await new Promise((resolve) => setTimeout(resolve, 300));
       }
-      if (totalReviewed > 0) {
-        console.log(`[评论定时审核] ${source}: 共 ${round} 轮,审核 ${totalReviewed} 条 · 通过 ${totalPassed} · 拒绝 ${totalRejected}`);
-      }
+      // 每个模块每轮都打一行(哪怕 0 条),方便确认 4 个模块都在跑,而不是只看到视频在动
+      console.log(`[评论定时审核] ${source}: 共 ${round} 轮,审核 ${totalReviewed} 条 · 通过 ${totalPassed} · 拒绝 ${totalRejected}`);
     } catch (err) {
       console.error(`[评论定时审核] ${source} 出错: ${err.message}`);
     }
