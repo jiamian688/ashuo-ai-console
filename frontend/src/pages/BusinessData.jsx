@@ -74,6 +74,7 @@ export default function BusinessData() {
               <th>日期</th>
               <th>新增</th>
               <th>安卓注册</th>
+              <th>H5注册</th>
               <th>日活</th>
               <th>收入</th>
               <th>老用户充值</th>
@@ -93,13 +94,14 @@ export default function BusinessData() {
           </thead>
           <tbody>
             {!loading && days.length === 0 && (
-              <tr><td colSpan={18} className="empty" style={{ padding: 26 }}>暂无数据</td></tr>
+              <tr><td colSpan={19} className="empty" style={{ padding: 26 }}>暂无数据</td></tr>
             )}
             {days.map((d) => (
               <tr key={d.date}>
                 <td>{d.date}</td>
                 <td>{fmtNum(d.newUsers)}</td>
                 <td>{fmtNum(d.newAndroid)}</td>
+                <td>{fmtNum(d.newWeb)}</td>
                 <td>{fmtNum(d.activeTotal)}</td>
                 <td>{fmtNum(d.rechargeAmount)}</td>
                 <td>{fmtNum(d.oldPayTotal)}</td>
