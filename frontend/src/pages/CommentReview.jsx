@@ -278,7 +278,7 @@ export default function CommentReview() {
               </button>
               <label className="small" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-soft)' }}>
                 <input type="checkbox" checked={onlyToday} onChange={(e) => setOnlyToday(e.target.checked)} disabled={autoBusy || sweepBusy} />
-                只审核今天发的评论(往期存量不动)
+                只审核近期评论(最近约 30 小时,往期存量不动)
               </label>
               {selectedIds.length > 0 && (
                 <>
@@ -291,7 +291,7 @@ export default function CommentReview() {
               <div style={{ margin: '0 20px 16px' }}>
                 <div className="small" style={{ color: 'var(--text-faint)', marginBottom: 8 }}>
                   {sweepBusy ? '批量处理中…' : '批量处理完成'} · 共 {sweepProgress.round} 轮 · 累计审核 {sweepProgress.reviewed} 条 · 通过 {sweepProgress.passed} · {rejectLabel} {sweepProgress.rejected}
-                  {onlyToday && sweepProgress.skipped > 0 && ` · 跳过 ${sweepProgress.skipped} 条(非今天)`}
+                  {onlyToday && sweepProgress.skipped > 0 && ` · 跳过 ${sweepProgress.skipped} 条(较早)`}
                   {!sweepBusy && sweepProgress.round >= MAX_SWEEP_ROUNDS && sweepProgress.reviewed > 0 && '(已达单次上限,若仍有剩余可再次点击继续)'}
                 </div>
                 {sweepProgress.details.length > 0 && (
@@ -313,7 +313,7 @@ export default function CommentReview() {
               <div style={{ margin: '0 20px 16px' }}>
                 <div className="small" style={{ color: 'var(--text-faint)', marginBottom: 8 }}>
                   本轮自动审核 {autoResult.reviewed} 条 · 通过 {autoResult.passed} · {rejectLabel} {autoResult.rejected}
-                  {onlyToday && autoResult.skipped > 0 && ` · 跳过 ${autoResult.skipped} 条(非今天)`}
+                  {onlyToday && autoResult.skipped > 0 && ` · 跳过 ${autoResult.skipped} 条(较早)`}
                 </div>
                 {autoResult.details?.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>

@@ -68,12 +68,27 @@ export async function runAutoReview(source, { limit = 50, onlyToday = false } = 
   const { list, hasApprovalFlow } = await listComments(source, { page: 1, limit, status: 0 });
   if (!list.length) return { reviewed: 0, passed: 0, rejected: 0, skipped: 0, details: [] };
 
-  // 只审核今天(北京时间)发的评论;更早的先跳过不动,避免动到往期存量。
+  // 只审核最近发布的评论;更早的先跳过不动,避免动到往期存量。
   let targetList = list;
   let skipped = 0;
   if (onlyToday) {
-    const todayStr = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
-    targetList = list.filter((it) => String(it.created_at || '').slice(0, 10) === todayStr);
+    // 不按「北京自然日」判定 —— 那样在北京 00:00 前后会漏掉跨日那一两个小时、
+    // 上一轮还没抓到的评论(定时任务每 2 小时一轮)。改成滚动时间窗:
+    // 只保留最近 RECENT_HOURS 小时内发布的,既不碰往期存量,也不受午夜切日影响。
+    const RECENT_HOURS = 30;
+    const cutoff = Date.now() - RECENT_HOURS * 3600 * 1000;
+    const parseBJ = (s) => {
+      s = String(s || '').trim();
+      if (!s) return NaN;
+      // 后台 created_at 是北京时间(UTC+8)的 'YYYY-MM-DD HH:MM:SS'
+      let ms = Date.parse(s.replace(' ', 'T') + '+08:00');
+      if (!Number.isFinite(ms)) ms = Date.parse(s); // 兜底:后台若改用自带时区的格式
+      return ms;
+    };
+    targetList = list.filter((it) => {
+      const ms = parseBJ(it.created_at);
+      return Number.isFinite(ms) && ms >= cutoff;
+    });
     skipped = list.length - targetList.length;
   }
   if (!targetList.length) return { reviewed: 0, passed: 0, rejected: 0, skipped, details: [] };
