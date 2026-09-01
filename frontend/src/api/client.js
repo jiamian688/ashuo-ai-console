@@ -40,6 +40,13 @@ async function request(path, options = {}) {
 export const api = {
   login: (username, password) =>
     request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
+  listActivity: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+    ).toString();
+    return request(`/activity${qs ? `?${qs}` : ''}`);
+  },
   listUsers: () => request('/users'),
   createUser: (username, password, nickname, tools) =>
     request('/users', { method: 'POST', body: JSON.stringify({ username, password, nickname, tools }) }),

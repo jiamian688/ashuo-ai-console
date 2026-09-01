@@ -55,6 +55,21 @@ db.exec(`
     reason TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- 操作日志:登录/退出 + 账号相关敏感操作。ts 存 UTC('now'),前端按本地时区显示。
+  CREATE TABLE IF NOT EXISTS activity_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL DEFAULT (datetime('now')),
+    actor TEXT,                    -- 操作人用户名(登录失败时是尝试的用户名)
+    actor_id INTEGER,              -- users.id,能确定时才有
+    action TEXT NOT NULL,          -- login_ok | login_fail | logout | create_user | reset_password | update_tools | delete_user
+    target TEXT,                   -- 被操作对象,通常是目标账号用户名
+    detail TEXT,                   -- 补充说明 / JSON
+    ip TEXT,
+    user_agent TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_activity_log_id ON activity_log (id DESC);
+  CREATE INDEX IF NOT EXISTS idx_activity_log_action ON activity_log (action);
 `);
 
 // 轻量迁移:users 表后加的列

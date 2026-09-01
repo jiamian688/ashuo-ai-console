@@ -14,6 +14,7 @@ import comicRouter from './routes/comic.js';
 import commentReviewRouter from './routes/commentReview.js';
 import businessDataRouter from './routes/businessData.js';
 import usersRouter from './routes/users.js';
+import activityRouter from './routes/activity.js';
 import postAdminRouter from './routes/postAdmin.js';
 import sheetExportRouter from './routes/sheetExport.js';
 import { startCommentAutoReviewScheduler } from './services/commentReviewScheduler.js';
@@ -22,6 +23,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+// 后端在 nginx / Vercel 反代后面,真实客户端 IP 在 X-Forwarded-For,启用后 req.ip 取到它(供操作日志用)
+app.set('trust proxy', true);
 app.use(cors());
 app.use(express.json());
 
@@ -61,6 +64,7 @@ app.use('/api/comment-review', requireAuth, commentReviewRouter);
 app.use('/api/business-data', requireAuth, businessDataRouter);
 app.use('/api/sheet-export', sheetExportRouter); // 不走 requireAuth,自己校验 token(见路由文件)
 app.use('/api/users', requireAuth, requireAdmin, usersRouter);
+app.use('/api/activity', requireAuth, requireAdmin, activityRouter);
 app.use('/api/post-admin', requireAuth, postAdminRouter);
 
 // 本地用 BACKEND_PORT(避开被注入的 PORT);Render 等平台注入 PORT,回退到它

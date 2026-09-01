@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { clearToken, getUser } from '../api/client.js';
+import { api, clearToken, getUser } from '../api/client.js';
 
 function useClock() {
   const [now, setNow] = useState(new Date());
@@ -17,7 +17,8 @@ export default function Nav({ crumb, theme, onToggleTheme }) {
   const now = useClock();
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  const logout = () => {
+  const logout = async () => {
+    try { await api.logout(); } catch { /* 日志记不上也不挡退出 */ }
     clearToken();
     navigate('/login');
   };
@@ -39,6 +40,7 @@ export default function Nav({ crumb, theme, onToggleTheme }) {
       <button className="icon-btn" onClick={onToggleTheme} title="切换主题">
         {theme === 'dark' ? '☀' : '☾'}
       </button>
+      {user?.isAdmin && <Link to="/activity" className="nav-item">日志</Link>}
       {user?.isAdmin && <Link to="/admin" className="nav-item">管理</Link>}
       <button className="nav-item icon-btn" onClick={logout}>退出</button>
     </header>
