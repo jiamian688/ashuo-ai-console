@@ -78,6 +78,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- layout ---------- */
 .page { max-width: 1440px; margin: 0 auto; padding: 20px 32px 48px; }
+.page.page--wide { max-width: min(95vw, 2100px); }
 .back-btn {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -410,7 +411,7 @@ table.daily-detail thead th {
   white-space: nowrap;
   vertical-align: bottom;
   text-align: center;      /* 竖排文字沿列居中,和下方数据对齐 */
-  padding: 8px 0;
+  padding: 8px 10px;
   font-size: 12px;
   line-height: 1.15;
   color: var(--text-soft);
@@ -421,7 +422,7 @@ table.daily-detail thead th:first-child {
   vertical-align: bottom;
   width: 92px;
 }
-table.daily-detail tbody td { padding: 8px 4px; font-size: 13px; text-align: center; }
+table.daily-detail tbody td { padding: 11px 10px; font-size: 13px; text-align: center; }
 table.daily-detail tbody td:first-child { text-align: left; white-space: nowrap; color: var(--text-soft); font-size: 12px; }
 
 /* 紧凑版统计卡:缩小占位 */

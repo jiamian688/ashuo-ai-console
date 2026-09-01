@@ -32,7 +32,7 @@ export default function BusinessData() {
   const last30 = days;
 
   return (
-    <div className="page">
+    <div className="page page--wide">
       <button className="back-btn" onClick={() => navigate('/')}>← 返回工作台</button>
 
       <div className={`tg-banner ${status.configured ? 'ok' : 'warn'}`}>
