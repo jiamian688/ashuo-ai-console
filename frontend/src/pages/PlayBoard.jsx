@@ -11,6 +11,17 @@ export default function PlayBoard() {
   const [board, setBoard] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [scanResult, setScanResult] = useState('');
+  const [scanning, setScanning] = useState(false);
+
+  const runScan = () => {
+    setScanning(true);
+    setScanResult('扫描中…(要逐个试十几个接口,约 10-20 秒)');
+    api.playBoardScan()
+      .then((r) => setScanResult(JSON.stringify(r, null, 2)))
+      .catch((err) => setScanResult('扫描失败:' + err.message))
+      .finally(() => setScanning(false));
+  };
 
   useEffect(() => {
     api.playBoardStatus()
@@ -111,8 +122,19 @@ export default function PlayBoard() {
         </div>
       </div>
 
-      <div className="hint" style={{ marginTop: 12 }}>
-        字段口径待确认:如某类目提示「没识别到播放量字段」,访问 <code>/api/play-board/probe?type={active}</code> 看返回字段名告诉我,我补进映射即可。
+      <div style={{ marginTop: 20, borderTop: '1px dashed var(--border)', paddingTop: 14 }}>
+        <div className="section-head" style={{ margin: 0 }}>
+          <h2 style={{ fontSize: 15 }}>调试:扫描后台内容接口</h2>
+          <button className="ghost-btn" onClick={runScan} disabled={scanning}>{scanning ? '扫描中…' : '开始扫描'}</button>
+        </div>
+        <div className="hint" style={{ marginBottom: 8 }}>
+          自动试一批可能的 resource 名(mv/book/comic/cartoon/anime/manga…),列出哪些通、疑似播放量字段。把结果整段复制发给开发即可接入动漫/漫画。
+        </div>
+        {scanResult && (
+          <pre style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, fontSize: 12, lineHeight: 1.5, overflowX: 'auto', maxHeight: 420, overflowY: 'auto', whiteSpace: 'pre', margin: 0 }}>
+            {scanResult}
+          </pre>
+        )}
       </div>
     </div>
   );

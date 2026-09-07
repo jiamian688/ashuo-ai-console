@@ -121,6 +121,7 @@ export const api = {
   todayHomeStats: () => request('/business-data/today'),
   playBoardStatus: () => request('/play-board/status'),
   playBoard: (type, limit = 10) => request(`/play-board/board?type=${encodeURIComponent(type)}&limit=${limit}`),
+  playBoardScan: () => request('/play-board/scan'),
   postAdminStatus: () => request('/post-admin/status'),
   postAdminTodayStats: () => request('/post-admin/today-stats'),
   listPendingPosts: (page = 1, limit = 20) => request(`/post-admin/list?page=${page}&limit=${limit}&status=0`),
