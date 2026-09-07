@@ -25,6 +25,7 @@ export const TOOLS = [
     submenu: [
       { key: 'businessInsight', icon: '🩺', title: '数据诊断监控', desc: '异常告警 · 近7天走向 · 每日体检心得', to: '/business-insight' },
       { key: 'businessDetail', icon: '📊', title: '经营数据明细', desc: '后台每日收入/注册/日活/留存明细表', to: '/business-data' },
+      { key: 'playBoard', icon: '🎬', title: '播放看板', desc: '动漫/成人/视频/漫画/小说 播放量 Top10', to: '/play-board' },
     ],
   },
   {
