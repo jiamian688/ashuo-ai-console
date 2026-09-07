@@ -62,6 +62,35 @@ export async function probe(key) {
   };
 }
 
+// 一次性扫一批可能的内容 resource 名,返回哪些通、字段是什么。省去在 DevTools 里翻。
+const SCAN_RESOURCES = [
+  'mv', 'book', 'comic', 'cartoon', 'anime', 'animation', 'manga', 'manhua', 'comicbook',
+  'dm', 'dongman', 'donghua', 'hmv', 'video', 'novel', 'fiction', 'story',
+  'porn', 'game', 'hgame', 'porngame', 'h5game', 'picture', 'photo', 'album', 'cosplay',
+];
+
+export async function scan() {
+  const out = [];
+  for (const r of SCAN_RESOURCES) {
+    try {
+      const data = await adminCall(`/admin/${r}/listAjax`, { params: { page: 1, limit: 1 } });
+      const row = Array.isArray(data.data) ? data.data[0] : null;
+      out.push({
+        resource: r,
+        ok: true,
+        count: data.count ?? null,
+        detectedPlayField: row ? pickPlayField(row) : null,
+        // 只挑出像「数量/次数」的字段,方便肉眼找播放量
+        numberKeys: row ? Object.keys(row).filter((k) => /count|num|play|view|hit|click|read|watch|hot|heat|pv|uv/i.test(k)) : [],
+        titleKeys: row ? Object.keys(row).filter((k) => /title|name/i.test(k)) : [],
+      });
+    } catch (e) {
+      out.push({ resource: r, ok: false, error: e.message });
+    }
+  }
+  return { tried: SCAN_RESOURCES.length, results: out };
+}
+
 // 快照表:每天记录一次各内容 Top-N 的累计播放,用来算「当日新增播放」
 db.exec(`
   CREATE TABLE IF NOT EXISTS play_snapshot (

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { playBoardConfigured, TYPES, getBoard, probe } from '../services/playBoard.js';
+import { playBoardConfigured, TYPES, getBoard, probe, scan } from '../services/playBoard.js';
 
 const router = Router();
 
@@ -21,6 +21,15 @@ router.get('/board', async (req, res) => {
 router.get('/probe', async (req, res) => {
   try {
     res.json(await probe(req.query.type || TYPES[0].key));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 调试:一次性扫一批可能的 resource 名,返回哪些通 + 疑似播放量/标题字段
+router.get('/scan', async (req, res) => {
+  try {
+    res.json(await scan());
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
