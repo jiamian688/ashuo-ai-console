@@ -143,17 +143,17 @@ const ROWS = [
   { label: '老用户 ARPU', sub: true, cell: (m) => fmt2(m.oldArpu), cmp: (m) => m.oldArpu, kind: 'num', goodUp: true },
 ];
 
-// 复用同一套 ROWS 渲染任意列组合;给了 deltaA/deltaB 就多一列「环比」
-function MetricTable({ columns, deltaA, deltaB }) {
-  const showDelta = deltaA && deltaB;
-  const span = columns.length + (showDelta ? 2 : 1);
+// 复用同一套 ROWS 渲染任意列组合;deltas = [{label,a,b}] 每项多一列对比(a 相对 b 的变化)
+function MetricTable({ columns, deltas = [] }) {
+  const dl = deltas.filter((x) => x && x.a && x.b);
+  const span = columns.length + 1 + dl.length;
   return (
     <table className="compact">
       <thead>
         <tr>
           <th style={{ textAlign: 'left', minWidth: 200 }}>指标</th>
-          {columns.map((c) => <th key={c.key} style={{ minWidth: 104 }}>{c.label}</th>)}
-          {showDelta && <th style={{ minWidth: 86 }}>环比</th>}
+          {columns.map((c) => <th key={c.key} style={{ minWidth: 100 }}>{c.label}</th>)}
+          {dl.map((x, i) => <th key={`d${i}`} style={{ minWidth: 82 }}>{x.label}</th>)}
         </tr>
       </thead>
       <tbody>
@@ -165,19 +165,21 @@ function MetricTable({ columns, deltaA, deltaB }) {
               </tr>
             );
           }
-          let deltaTxt = '—';
-          let deltaColor = 'var(--text-faint)';
-          if (showDelta && row.cmp) {
-            const r = row.kind === 'pp' ? chgPP(row.cmp(deltaA), row.cmp(deltaB)) : chgNum(row.cmp(deltaA), row.cmp(deltaB));
-            deltaTxt = r.txt;
-            if (r.sign !== 0 && row.goodUp !== undefined) deltaColor = (r.sign > 0) === row.goodUp ? 'var(--green)' : '#e0446c';
-            else if (r.sign !== 0) deltaColor = 'var(--text-soft)';
-          }
           return (
             <tr key={i}>
               <td style={{ textAlign: 'left', paddingLeft: row.sub ? 22 : 10, color: row.sub ? 'var(--text-soft)' : 'var(--text)' }}>{row.label}</td>
               {columns.map((c) => <td key={c.key}>{c.m ? row.cell(c.m) : '—'}</td>)}
-              {showDelta && <td style={{ color: deltaColor, fontWeight: 600 }}>{deltaTxt}</td>}
+              {dl.map((x, di) => {
+                let txt = '—';
+                let color = 'var(--text-faint)';
+                if (row.cmp && x.a && x.b) {
+                  const r = row.kind === 'pp' ? chgPP(row.cmp(x.a), row.cmp(x.b)) : chgNum(row.cmp(x.a), row.cmp(x.b));
+                  txt = r.txt;
+                  if (r.sign !== 0 && row.goodUp !== undefined) color = (r.sign > 0) === row.goodUp ? 'var(--green)' : '#e0446c';
+                  else if (r.sign !== 0) color = 'var(--text-soft)';
+                }
+                return <td key={`d${di}`} style={{ color, fontWeight: 600 }}>{txt}</td>;
+              })}
             </tr>
           );
         })}
@@ -219,7 +221,7 @@ export default function BusinessInsight() {
   const load = () => {
     setLoading(true);
     setError('');
-    api.listDailyBusinessData(30)
+    api.listDailyBusinessData(62)
       .then((d) => {
         const list = d.list || [];
         setDays(list);
@@ -238,7 +240,8 @@ export default function BusinessInsight() {
 
   const model = useMemo(() => {
     if (!days.length) return null;
-    const rows = days; // 倒序:rows[0] = 最近一天
+    const rows = days; // 倒序:rows[0] = 最近一天;最多 62 天(为「月环比」留出上月同日)
+    const rows30 = rows.slice(0, 30);
     const cur = rows[0];
     const base = rows.slice(1, 8);
     const last7 = rows.slice(0, 7);
@@ -251,7 +254,18 @@ export default function BusinessInsight() {
     const mToday = aggregate([cur]);
     const m7 = aggregate(last7);
     const mPrev7 = prev7.length ? aggregate(prev7) : null;
-    const m30 = aggregate(rows);
+    const m30 = aggregate(rows30);
+
+    // 日环比 = 最新日 vs 前一日;月环比 = 最新日 vs 上月同日(取不到则退回约 30 天前)
+    const mCur = aggregate([cur]);
+    const mPrevDay = rows[1] ? aggregate([rows[1]]) : null;
+    const _mref = new Date(cur.date + 'T00:00:00');
+    _mref.setMonth(_mref.getMonth() - 1);
+    const _p2 = (n) => String(n).padStart(2, '0');
+    const monthAgoDate = `${_mref.getFullYear()}-${_p2(_mref.getMonth() + 1)}-${_p2(_mref.getDate())}`;
+    const monthAgoRow = rows.find((r) => r.date === monthAgoDate) || rows[30] || null;
+    const mMonthAgo = monthAgoRow ? aggregate([monthAgoRow]) : null;
+    const monthAgoLabel = monthAgoRow ? monthAgoRow.date.slice(5) : '上月同日';
 
     // ---------- 异常监控 ----------
     const alerts = [];
@@ -291,7 +305,7 @@ export default function BusinessInsight() {
     if (!alerts.length) push('good', '当天各项指标相对前 7 天均值无明显异常');
 
     // ---------- 走向 sparkline ----------
-    const seriesAsc = [...rows].reverse();
+    const seriesAsc = [...rows30].reverse();
     const trendDefs = [
       { key: 'rechargeAmount', label: '收入', mode: 'sum', fmt: fmtNum },
       { key: 'newUsers', label: '新增', mode: 'sum', fmt: fmtNum },
@@ -312,6 +326,7 @@ export default function BusinessInsight() {
     const oldPayVals = last7.map((r) => d(r, 'oldPayTotal'));
     const day0List = last7.map((r) => ({ date: r.date, v: d(r, 'newUsers') ? (d(r, 'regPayUser') / d(r, 'newUsers')) * 100 : 0 }));
     const bestDay0 = [...day0List].sort((a, b) => b.v - a.v)[0];
+    // 7日均值 vs 前7日均值(给还是以周为单位的结论用)
     const cmp7 = (getter, ppMode) => {
       if (!mPrev7) return '';
       const c = getter(m7);
@@ -319,12 +334,22 @@ export default function BusinessInsight() {
       const r = ppMode ? chgPP(c, p) : chgNum(c, p);
       return r.txt === '持平' ? ',环比基本持平' : `,环比${r.sign > 0 ? '↑' : '↓'}${r.txt.replace('+', '').replace('-', '')}`;
     };
+    // 最新日:日环比(vs 前一日) + 月环比(vs 上月同日),getter 作用在单日聚合对象上
+    const seg = (label, r) => (r.sign === 0 ? `${label}持平` : `${label}${r.sign > 0 ? '↑' : '↓'}${r.txt.replace(/[+-]/g, '')}`);
+    const dm = (getter, ppMode) => {
+      const c = getter(mCur);
+      const parts = [];
+      if (mPrevDay) parts.push(seg('日环比', ppMode ? chgPP(c, getter(mPrevDay)) : chgNum(c, getter(mPrevDay))));
+      if (mMonthAgo) parts.push(seg(`月环比(vs ${monthAgoLabel})`, ppMode ? chgPP(c, getter(mMonthAgo)) : chgNum(c, getter(mMonthAgo))));
+      return parts.length ? `(${parts.join(' · ')})` : '';
+    };
 
     const notes = [
       {
         title: '规模与结构',
         items: [
-          `近 7 天日均新增 ${fmtNum(m7.newUsers / m7._n)}、日均日活 ${fmtNum(m7.activeTotal / m7._n)}${cmp7((m) => m.newUsers)} / 日活${cmp7((m) => m.activeTotal)}。`,
+          `最新一天 ${cur.date.slice(5)}:新增 ${fmtNum(mCur.newUsers)} ${dm((m) => m.newUsers)}、日活 ${fmtNum(mCur.activeTotal)} ${dm((m) => m.activeTotal)}、收入 ${fmtNum(mCur.rechargeAmount)} ${dm((m) => m.rechargeAmount)}。`,
+          `近 7 天日均新增 ${fmtNum(m7.newUsers / m7._n)}、日均日活 ${fmtNum(m7.activeTotal / m7._n)}${cmp7((m) => m.newUsers)} / 日活${cmp7((m) => m.activeTotal)}(vs 前 7 天)。`,
           `新增结构:安卓 ${fmt1(m7.androidNewShare)}% · H5 ${fmt1(m7.webNewShare)}%;邀请带来的新增占 ${fmt1(m7.inviteShare)}%${m7.inviteShare < 5 ? ' —— 邀请几乎没量,是无投放阶段最该做起来的杠杆' : ''}。`,
           `老用户活跃占日活 ${fmt1(m7.oldActiveShare)}%(新增占 ${fmt1(m7.newDauRatio)}%)。${m7.newDauRatio > 65 ? '日活几乎靠当天新增撑,新增一波动日活立刻跟着掉,说明留存盘子还没起来。' : '老用户盘子已在形成,继续观察其增速。'}`,
           `注册/IP 比 ${fmt2(m7.regPerIp)}、活跃/IP 比 ${fmt2(m7.activePerIp)}。${m7.regPerIp > 1.6 ? '注册/IP 偏高,建议抽查是否存在同 IP 批量注册(农场号 / 刷量)。' : '基本在正常区间。'}`,
@@ -333,7 +358,7 @@ export default function BusinessInsight() {
       {
         title: '留存(当前阶段第一优先级)',
         items: [
-          `近 7 天次留 ${fmt2(m7.keep1Rate)}%、3 留 ${fmt2(m7.keep3Rate)}%、7 留 ${fmt2(m7.keep7Rate)}%;日均留存人数 次 ${fmtNum(m7.keep1day / m7._n)} / 3日 ${fmtNum(m7.keep3day / m7._n)} / 7日 ${fmtNum(m7.keep7day / m7._n)}${cmp7((m) => m.keep1Rate, true)}(次留)。`,
+          `最新一天 ${cur.date.slice(5)} 次留 ${fmt2(mCur.keep1Rate)}% ${dm((m) => m.keep1Rate, true)}、3 留 ${fmt2(mCur.keep3Rate)}% ${dm((m) => m.keep3Rate, true)};近 7 天次留 ${fmt2(m7.keep1Rate)}%、3 留 ${fmt2(m7.keep3Rate)}%、7 留 ${fmt2(m7.keep7Rate)}%,日均留存人数 次 ${fmtNum(m7.keep1day / m7._n)} / 3日 ${fmtNum(m7.keep3day / m7._n)} / 7日 ${fmtNum(m7.keep7day / m7._n)}。`,
           `留存衰减:7 留 ÷ 次留 = ${fmt1(m7.retDecay)}%。${m7.retDecay < 25 ? '衰减偏快,用户拉新回来一次后很快流失,重点在「第 2~7 天的追更动机」。' : '衰减相对平缓。'}`,
           `内容类 app 次留健康线通常在 20% 上下,当前 ${fmt2(m7.keep1Rate)}% 明显偏低。先确认口径:留存分母是「当日新增」还是「当日活跃」、是否只统计了安卓、是否剔除同日重复;最近 1~2 天的留存可能还没跑完,别用最新点下结论。`,
           `可动作(产品侧,不依赖投放):新用户前 3 集免费 + 看完自动连播、进度记忆(打开直接续播)、次日定向推送「接着看 + 新剧」、首日 push 时机 A/B、开屏直接进正片而非首页。`,
@@ -342,8 +367,8 @@ export default function BusinessInsight() {
       {
         title: '付费漏斗(逐层拆)',
         items: [
-          `第一层 活跃 → 拉单:近 7 天拉单率 ${fmt2(m7.pullRate)}%(${fmtNum(m7.rechargeCount)} 单 / ${fmtNum(m7.activeTotal)} 活跃)${cmp7((m) => m.pullRate, true)}。${m7.pullRate < 2 ? '走到收银台的人太少,是漏斗最细的一环 —— 优先加付费入口、解锁引导、首充弹窗。' : ''}`,
-          `第二层 拉单 → 成功:支付成功率 ${fmt2(m7.paySuccess)}%${cmp7((m) => m.paySuccess, true)}。${m7.paySuccess < 45 ? '偏低,查最低档定价是否过高、支付方式是否够、失败后有没有挽留。' : '尚可,重点仍在第一层。'}`,
+          `第一层 活跃 → 拉单:最新一天拉单率 ${fmt2(mCur.pullRate)}% ${dm((m) => m.pullRate, true)};近 7 天 ${fmt2(m7.pullRate)}%(${fmtNum(m7.rechargeCount)} 单 / ${fmtNum(m7.activeTotal)} 活跃)。${m7.pullRate < 2 ? '走到收银台的人太少,是漏斗最细的一环 —— 优先加付费入口、解锁引导、首充弹窗。' : ''}`,
+          `第二层 拉单 → 成功:最新一天支付成功率 ${fmt2(mCur.paySuccess)}% ${dm((m) => m.paySuccess, true)};近 7 天 ${fmt2(m7.paySuccess)}%。${m7.paySuccess < 45 ? '偏低,查最低档定价是否过高、支付方式是否够、失败后有没有挽留。' : '尚可,重点仍在第一层。'}`,
           `活跃付费率 ${fmt2(m7.activePayRate)}%、DAY0 付费率 ${fmt2(m7.day0PayRate)}%、老用户付费率 ${fmt2(m7.oldPayRate)}%;人均成功订单 ${fmt2(m7.ordersPerPayer)} 单。`,
           `近 7 天 DAY0 付费率最高是 ${bestDay0 ? bestDay0.date : '—'}(${bestDay0 ? fmt2(bestDay0.v) : '—'}%),回看当天做了什么(活动 / 新剧上线 / 推送 / 首充调整),能复制的固化下来。`,
         ],
@@ -351,7 +376,7 @@ export default function BusinessInsight() {
       {
         title: '收入结构',
         items: [
-          `近 7 天总充值 ${fmtNum(m7.rechargeAmount)}(日均 ${fmtNum(m7.rechargeAmount / m7._n)})${cmp7((m) => m.rechargeAmount)}。`,
+          `最新一天总充值 ${fmtNum(mCur.rechargeAmount)} ${dm((m) => m.rechargeAmount)}、付费人数 ${fmtNum(mCur.payingUsers)} ${dm((m) => m.payingUsers)}、ARPPU ${fmt1(mCur.arppu)} ${dm((m) => m.arppu)};近 7 天总充值 ${fmtNum(m7.rechargeAmount)}(日均 ${fmtNum(m7.rechargeAmount / m7._n)})${cmp7((m) => m.rechargeAmount)}。`,
           `产品拆分:VIP 占 ${fmt1(m7.vipShare)}% · 金币占 ${fmt1(m7.coinShare)}%。${m7.coinShare < 10 ? '金币(单集解锁)几乎没跑,和低拉单率互相印证 —— 用户还没进入「为单集付费」的环节,追更 + 解锁墙要一起做。' : ''}`,
           `用户拆分:新增贡献收入 ${fmtNum(m7.newRev)}(占 ${fmt1(m7.newRevShare)}%),老用户充值 ${fmtNum(m7.oldPayTotal)}(占 ${fmt1(m7.oldRevShare)}%);近 7 天单日老用户充值在 ${fmtNum(Math.min(...oldPayVals))} ~ ${fmtNum(Math.max(...oldPayVals))} 之间波动${Math.max(...oldPayVals) > 2 * (Math.min(...oldPayVals) || 1) ? ',被少数大 R 带动,判断大盘趋势请盯「新增贡献收入」这条稳线' : ''}。`,
           `新增 ARPU ${fmt3(m7.newArpu)}、老用户 ARPU ${fmt2(m7.oldArpu)}${cmp7((m) => m.newArpu)}(新增 ARPU)。单日 ARPPU 最高 ${topArppu ? fmt1(topArppu.v) : '—'} 出现在 ${topArppu ? topArppu.date : '—'},排查是否单人大额,并建立大 R 维护(专属客服 / 礼包 / 提前触达)。`,
@@ -369,14 +394,28 @@ export default function BusinessInsight() {
       },
     ];
 
-    // ---------- 按天详查:每天 vs 前一天 ----------
-    const dayList = rows.map((row, i) => {
+    // ---------- 按天详查:每天 vs 前一天(展示最近 31 天) ----------
+    const dayList = rows.slice(0, 31).map((row, i) => {
       const prev = rows[i + 1] || null;
       return { date: row.date, row, prev, mDay: aggregate([row]), mPrev: prev ? aggregate([prev]) : null };
     });
 
-    return { cur, mToday, m7, mPrev7, m30, alerts, trends, notes, dayList };
+    return { cur, mToday, m7, mPrev7, m30, alerts, trends, notes, dayList, monthAgoLabel };
   }, [days]);
+
+  // 「关键数据速览」第1列所选日期的上月同日,用于「月环比」列(取不到退回约 30 天前)
+  const monthAgoAggOf = (date) => {
+    if (!date) return null;
+    const t = new Date(date + 'T00:00:00');
+    t.setMonth(t.getMonth() - 1);
+    const s = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+    let r = days.find((x) => x.date === s);
+    if (!r) {
+      const i = days.findIndex((x) => x.date === date);
+      r = i >= 0 ? days[i + 30] || null : null;
+    }
+    return r ? aggregate([r]) : null;
+  };
 
   const rowA = days.find((r) => r.date === dateA) || null;
   const rowB = days.find((r) => r.date === dateB) || null;
@@ -394,11 +433,12 @@ export default function BusinessInsight() {
     </select>
   );
 
+  const mAMonthAgo = mA ? monthAgoAggOf(dateA) : null;
+
   const cols = model ? [
     { key: 'a', label: dateSel(dateA, setDateA), m: mA },
     { key: 'b', label: dateSel(dateB, setDateB), m: mB },
     { key: 'w7', label: '近 7 日', m: model.m7 },
-    { key: 'p7', label: '前 7 日', m: model.mPrev7 },
     { key: 'w30', label: '近 30 日', m: model.m30 },
   ] : [];
 
@@ -408,7 +448,7 @@ export default function BusinessInsight() {
 
       <div className={`tg-banner ${status.configured ? 'ok' : 'warn'}`}>
         <span className="dot" style={{ background: status.configured ? 'var(--green)' : 'var(--amber)' }} />
-        {status.configured ? '已连接管理后台每日报告接口 · 诊断基于最近 30 天(暂无付费投放,聚焦留存 / 付费 / 内容)' : '未配置管理后台 token(在 backend/.env 填 HANIME_ADMIN_TOKEN 后可用)'}
+        {status.configured ? '已连接管理后台每日报告接口 · 诊断基于最近 62 天(近30天参照 + 上月同日做月环比;暂无付费投放,聚焦留存 / 付费 / 内容)' : '未配置管理后台 token(在 backend/.env 填 HANIME_ADMIN_TOKEN 后可用)'}
         <button className="ghost-btn" onClick={load} disabled={loading}>{loading ? '刷新中…' : '刷新'}</button>
       </div>
       {error && <div className="error" style={{ marginTop: 12 }}>{error}</div>}
@@ -456,11 +496,17 @@ export default function BusinessInsight() {
 
           <div className="section-head" style={{ marginTop: 28 }}>
             <h2>关键数据速览</h2>
-            <span className="hint">前两列可选任意日期 · 环比 = 第1列 vs 第2列</span>
+            <span className="hint">前两列可选日期(默认最新 vs 前一天)· 环比 = 第1列÷第2列 · 月环比 = 第1列÷上月同日</span>
           </div>
           <div className="card card--tight">
             <div style={{ overflowX: 'auto' }}>
-              <MetricTable columns={cols} deltaA={mA} deltaB={mB} />
+              <MetricTable
+                columns={cols}
+                deltas={[
+                  { label: '环比', a: mA, b: mB },
+                  { label: `月环比${mAMonthAgo ? '' : '(无)'}`, a: mA, b: mAMonthAgo },
+                ]}
+              />
             </div>
           </div>
 
@@ -495,8 +541,7 @@ export default function BusinessInsight() {
                           { key: 'd', label: it.date.slice(5), m: it.mDay },
                           { key: 'p', label: `前一日 ${it.prev.date.slice(5)}`, m: it.mPrev },
                         ]}
-                        deltaA={it.mDay}
-                        deltaB={it.mPrev}
+                        deltas={[{ label: '环比', a: it.mDay, b: it.mPrev }]}
                       />
                     </div>
                   ) : (
@@ -509,7 +554,7 @@ export default function BusinessInsight() {
 
           <div className="section-head" style={{ marginTop: 28 }}>
             <h2>每日体检心得</h2>
-            <span className="hint">按规则生成 · 已按无投放阶段调整</span>
+            <span className="hint">最新一天含 日环比(vs 前一天) + 月环比(vs 上月同日)</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {model.notes.map((sec, i) => (
