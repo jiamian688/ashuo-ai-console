@@ -84,8 +84,36 @@ const SCAN_RESOURCES = [
   'porn', 'game', 'hgame', 'porngame', 'h5game', 'picture', 'photo', 'album', 'cosplay',
 ];
 
+// 对已知能用的表,统计「类型/分类」字段的取值分布,用来决定怎么切「动漫」等子类
+async function catDist() {
+  const targets = {
+    mv: ['mv_type_str', 'category_title', 'pay_type_str'],
+    book: ['type_str', 'category_title'],
+    porngame: ['category_title'],
+  };
+  const out = {};
+  for (const [resource, fields] of Object.entries(targets)) {
+    try {
+      const rows = await fetchList(resource, { limit: 300 });
+      out[resource] = { sample: rows.length };
+      for (const f of fields) {
+        const tally = {};
+        for (const r of rows) {
+          const v = r[f] === '' || r[f] === null || r[f] === undefined ? '(空)' : String(r[f]);
+          tally[v] = (tally[v] || 0) + 1;
+        }
+        out[resource][f] = tally;
+      }
+    } catch (e) {
+      out[resource] = { error: e.message };
+    }
+  }
+  return out;
+}
+
 export async function scan() {
   const out = [];
+  const categories = await catDist();
   for (const r of SCAN_RESOURCES) {
     try {
       const data = await adminCall(`/admin/${r}/listAjax`, { params: { page: 1, limit: 1 } });
@@ -106,7 +134,7 @@ export async function scan() {
       out.push({ resource: r, ok: false, error: e.message });
     }
   }
-  return { tried: SCAN_RESOURCES.length, results: out };
+  return { tried: SCAN_RESOURCES.length, results: out, categories };
 }
 
 // 快照表:每天记录一次各内容 Top-N 的累计播放,用来算「当日新增播放」
