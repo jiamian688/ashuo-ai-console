@@ -207,6 +207,8 @@ export default function BusinessInsight() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [openDays, setOpenDays] = useState(() => new Set());
+  const [dateA, setDateA] = useState('');
+  const [dateB, setDateB] = useState('');
 
   const toggleDay = (date) => setOpenDays((s) => {
     const n = new Set(s);
@@ -222,6 +224,8 @@ export default function BusinessInsight() {
         const list = d.list || [];
         setDays(list);
         if (list[0]) setOpenDays(new Set([list[0].date]));
+        if (list[0]) setDateA(list[0].date);
+        if (list[1]) setDateB(list[1].date);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -374,8 +378,25 @@ export default function BusinessInsight() {
     return { cur, mToday, m7, mPrev7, m30, alerts, trends, notes, dayList };
   }, [days]);
 
+  const rowA = days.find((r) => r.date === dateA) || null;
+  const rowB = days.find((r) => r.date === dateB) || null;
+  const mA = rowA ? aggregate([rowA]) : null;
+  const mB = rowB ? aggregate([rowB]) : null;
+
+  const dateSel = (value, setter) => (
+    <select
+      value={value || ''}
+      onChange={(e) => setter(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      style={{ font: 'inherit', fontSize: 12, padding: '2px 4px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6 }}
+    >
+      {days.map((r) => <option key={r.date} value={r.date}>{r.date.slice(5)}</option>)}
+    </select>
+  );
+
   const cols = model ? [
-    { key: 'today', label: `今日 ${model.cur.date.slice(5)}`, m: model.mToday },
+    { key: 'a', label: dateSel(dateA, setDateA), m: mA },
+    { key: 'b', label: dateSel(dateB, setDateB), m: mB },
     { key: 'w7', label: '近 7 日', m: model.m7 },
     { key: 'p7', label: '前 7 日', m: model.mPrev7 },
     { key: 'w30', label: '近 30 日', m: model.m30 },
@@ -435,11 +456,11 @@ export default function BusinessInsight() {
 
           <div className="section-head" style={{ marginTop: 28 }}>
             <h2>关键数据速览</h2>
-            <span className="hint">日均口径 · 环比 = 近7日 vs 前7日</span>
+            <span className="hint">前两列可选任意日期 · 环比 = 第1列 vs 第2列</span>
           </div>
           <div className="card card--tight">
             <div style={{ overflowX: 'auto' }}>
-              <MetricTable columns={cols} deltaA={model.m7} deltaB={model.mPrev7} />
+              <MetricTable columns={cols} deltaA={mA} deltaB={mB} />
             </div>
           </div>
 
