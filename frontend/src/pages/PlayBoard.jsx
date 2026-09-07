@@ -93,7 +93,11 @@ export default function PlayBoard() {
       <div className="card card--tight">
         <div className="card-head">
           {board?.label || '—'}
-          <span className="muted">{board?.date ? `快照 ${board.date}` : ''}{board && !board.hasYesterday && board.list?.length ? ' · 当日新增需明日起才有对照' : ''}</span>
+          <span className="muted">
+            {board?.date ? `快照 ${board.date}` : ''}
+            {board?.sampledFrom ? ` · 排名取自最近 ${board.sampledFrom} 条抽样` : ''}
+            {board && !board.hasYesterday && board.list?.length ? ' · 当日新增需明日起才有对照' : ''}
+          </span>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table className="compact">
