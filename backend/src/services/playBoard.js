@@ -83,6 +83,11 @@ export async function scan() {
         // 只挑出像「数量/次数」的字段,方便肉眼找播放量
         numberKeys: row ? Object.keys(row).filter((k) => /count|num|play|view|hit|click|read|watch|hot|heat|pv|uv/i.test(k)) : [],
         titleKeys: row ? Object.keys(row).filter((k) => /title|name/i.test(k)) : [],
+        allKeys: row ? Object.keys(row) : [],
+        // 疑似「类型/分类」字段的取值,用来区分漫画 vs 小说等
+        typeSample: row
+          ? Object.fromEntries(Object.entries(row).filter(([k]) => /type|kind|classify|module|is_comic|is_novel|is_book|section|channel/i.test(k)))
+          : {},
       });
     } catch (e) {
       out.push({ resource: r, ok: false, error: e.message });
