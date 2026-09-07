@@ -143,18 +143,86 @@ const ROWS = [
   { label: '老用户 ARPU', sub: true, cell: (m) => fmt2(m.oldArpu), cmp: (m) => m.oldArpu, kind: 'num', goodUp: true },
 ];
 
+// 复用同一套 ROWS 渲染任意列组合;给了 deltaA/deltaB 就多一列「环比」
+function MetricTable({ columns, deltaA, deltaB }) {
+  const showDelta = deltaA && deltaB;
+  const span = columns.length + (showDelta ? 2 : 1);
+  return (
+    <table className="compact">
+      <thead>
+        <tr>
+          <th style={{ textAlign: 'left', minWidth: 200 }}>指标</th>
+          {columns.map((c) => <th key={c.key} style={{ minWidth: 104 }}>{c.label}</th>)}
+          {showDelta && <th style={{ minWidth: 86 }}>环比</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {ROWS.map((row, i) => {
+          if (row.grp) {
+            return (
+              <tr key={`g${i}`}>
+                <td colSpan={span} style={{ fontWeight: 700, background: 'var(--surface-2)', fontSize: 12.5, color: 'var(--text-soft)' }}>{row.grp}</td>
+              </tr>
+            );
+          }
+          let deltaTxt = '—';
+          let deltaColor = 'var(--text-faint)';
+          if (showDelta && row.cmp) {
+            const r = row.kind === 'pp' ? chgPP(row.cmp(deltaA), row.cmp(deltaB)) : chgNum(row.cmp(deltaA), row.cmp(deltaB));
+            deltaTxt = r.txt;
+            if (r.sign !== 0 && row.goodUp !== undefined) deltaColor = (r.sign > 0) === row.goodUp ? 'var(--green)' : '#e0446c';
+            else if (r.sign !== 0) deltaColor = 'var(--text-soft)';
+          }
+          return (
+            <tr key={i}>
+              <td style={{ textAlign: 'left', paddingLeft: row.sub ? 22 : 10, color: row.sub ? 'var(--text-soft)' : 'var(--text)' }}>{row.label}</td>
+              {columns.map((c) => <td key={c.key}>{c.m ? row.cell(c.m) : '—'}</td>)}
+              {showDelta && <td style={{ color: deltaColor, fontWeight: 600 }}>{deltaTxt}</td>}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function MiniStat({ label, cur, prev, pp }) {
+  const c = num(cur);
+  const p = num(prev);
+  const r = pp ? chgPP(c, p) : chgNum(c, p);
+  const color = r.sign === 0 ? 'var(--text-faint)' : r.sign > 0 ? 'var(--green)' : '#e0446c';
+  return (
+    <span style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+      <span style={{ color: 'var(--text-soft)' }}>{label} </span>
+      {pp ? `${fmt2(c)}%` : fmtNum(c)}
+      <span style={{ color, marginLeft: 4 }}>{r.txt}</span>
+    </span>
+  );
+}
+
 export default function BusinessInsight() {
   const navigate = useNavigate();
   const [status, setStatus] = useState({ configured: false });
   const [days, setDays] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [openDays, setOpenDays] = useState(() => new Set());
+
+  const toggleDay = (date) => setOpenDays((s) => {
+    const n = new Set(s);
+    if (n.has(date)) n.delete(date); else n.add(date);
+    return n;
+  });
 
   const load = () => {
     setLoading(true);
     setError('');
     api.listDailyBusinessData(30)
-      .then((d) => setDays(d.list || []))
+      .then((d) => {
+        const list = d.list || [];
+        setDays(list);
+        if (list[0]) setOpenDays(new Set([list[0].date]));
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   };
@@ -297,7 +365,13 @@ export default function BusinessInsight() {
       },
     ];
 
-    return { cur, mToday, m7, mPrev7, m30, alerts, trends, notes };
+    // ---------- 按天详查:每天 vs 前一天 ----------
+    const dayList = rows.map((row, i) => {
+      const prev = rows[i + 1] || null;
+      return { date: row.date, row, prev, mDay: aggregate([row]), mPrev: prev ? aggregate([prev]) : null };
+    });
+
+    return { cur, mToday, m7, mPrev7, m30, alerts, trends, notes, dayList };
   }, [days]);
 
   const cols = model ? [
@@ -365,45 +439,51 @@ export default function BusinessInsight() {
           </div>
           <div className="card card--tight">
             <div style={{ overflowX: 'auto' }}>
-              <table className="compact">
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left', minWidth: 200 }}>指标</th>
-                    {cols.map((c) => <th key={c.key} style={{ minWidth: 108 }}>{c.label}</th>)}
-                    <th style={{ minWidth: 88 }}>环比</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ROWS.map((row, i) => {
-                    if (row.grp) {
-                      return (
-                        <tr key={`g${i}`}>
-                          <td colSpan={cols.length + 2} style={{ fontWeight: 700, background: 'var(--surface-2)', fontSize: 12.5, color: 'var(--text-soft)' }}>{row.grp}</td>
-                        </tr>
-                      );
-                    }
-                    let deltaTxt = '—';
-                    let deltaColor = 'var(--text-faint)';
-                    if (row.cmp && model.mPrev7) {
-                      const r = row.kind === 'pp' ? chgPP(row.cmp(model.m7), row.cmp(model.mPrev7)) : chgNum(row.cmp(model.m7), row.cmp(model.mPrev7));
-                      deltaTxt = r.txt;
-                      if (r.sign !== 0 && row.goodUp !== undefined) {
-                        deltaColor = (r.sign > 0) === row.goodUp ? 'var(--green)' : '#e0446c';
-                      } else if (r.sign !== 0) {
-                        deltaColor = 'var(--text-soft)';
-                      }
-                    }
-                    return (
-                      <tr key={i}>
-                        <td style={{ textAlign: 'left', paddingLeft: row.sub ? 22 : 10, color: row.sub ? 'var(--text-soft)' : 'var(--text)' }}>{row.label}</td>
-                        {cols.map((c) => <td key={c.key}>{c.m ? row.cell(c.m) : '—'}</td>)}
-                        <td style={{ color: deltaColor, fontWeight: 600 }}>{deltaTxt}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <MetricTable columns={cols} deltaA={model.m7} deltaB={model.mPrev7} />
             </div>
+          </div>
+
+          <div className="section-head" style={{ marginTop: 28 }}>
+            <h2>按天详查</h2>
+            <span className="hint">点开某天 = 该天 vs 前一天逐项对比</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {model.dayList.map((it) => {
+              const open = openDays.has(it.date);
+              return (
+                <div key={it.date} className="card card--tight" style={{ marginBottom: 0 }}>
+                  <button
+                    onClick={() => toggleDay(it.date)}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '11px 16px', background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }}
+                  >
+                    <span style={{ fontWeight: 700, flexShrink: 0 }}>{open ? '▾' : '▸'} {it.date}</span>
+                    {it.prev && (
+                      <span style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                        <MiniStat label="收入" cur={it.row.rechargeAmount} prev={it.prev.rechargeAmount} />
+                        <MiniStat label="新增" cur={it.row.newUsers} prev={it.prev.newUsers} />
+                        <MiniStat label="日活" cur={it.row.activeTotal} prev={it.prev.activeTotal} />
+                        <MiniStat label="次留" cur={it.row.keep1dayRate} prev={it.prev.keep1dayRate} pp />
+                        <MiniStat label="付费人数" cur={it.row.payingUsers} prev={it.prev.payingUsers} />
+                      </span>
+                    )}
+                  </button>
+                  {open && (it.prev ? (
+                    <div style={{ overflowX: 'auto', borderTop: '1px solid var(--border)' }}>
+                      <MetricTable
+                        columns={[
+                          { key: 'd', label: it.date.slice(5), m: it.mDay },
+                          { key: 'p', label: `前一日 ${it.prev.date.slice(5)}`, m: it.mPrev },
+                        ]}
+                        deltaA={it.mDay}
+                        deltaB={it.mPrev}
+                      />
+                    </div>
+                  ) : (
+                    <div className="card-body hint" style={{ padding: '10px 16px', borderTop: '1px solid var(--border)' }}>没有更早一天的数据可对比</div>
+                  ))}
+                </div>
+              );
+            })}
           </div>
 
           <div className="section-head" style={{ marginTop: 28 }}>
