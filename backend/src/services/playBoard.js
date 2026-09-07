@@ -7,18 +7,20 @@ import db from '../db.js';
 import { adminConfigured, adminCall } from './adminClient.js';
 
 export const TYPES = [
-  { key: 'cartoon', label: '动漫', resource: 'cartoon', titleFields: ['cartoon_name', 'title', 'name'] },
-  { key: 'porn', label: '成人', resource: 'porn', titleFields: ['porn_name', 'title', 'name'] },
-  { key: 'mv', label: '视频', resource: 'mv', titleFields: ['mv_title', 'title', 'name'] },
-  { key: 'comic', label: '漫画', resource: 'comic', titleFields: ['comic_name', 'title', 'name'] },
-  { key: 'book', label: '小说', resource: 'book', titleFields: ['book_name', 'title', 'name'] },
+  // 动漫/成人 都是视频内容,标签带「视频」以示区分;不再单列「视频」tab
+  { key: 'cartoon', label: '动漫视频', resource: 'cartoon', titleFields: ['title', 'second_title', 'name'] },
+  { key: 'mv', label: '成人视频', resource: 'mv', titleFields: ['title', 'second_title', 'name'] }, // 已确认可用,字段 count_play
+  { key: 'comic', label: '漫画', resource: 'comic', titleFields: ['title', 'comic_name', 'name'] }, // ⚠️ /admin/comic 404,真实 resource 名待确认
+  { key: 'book', label: '小说', resource: 'book', titleFields: ['title', 'book_name', 'name'] },
 ];
 
-// 首行里按这个顺序找「播放量」字段(找到第一个数字型的就用)
+// 首行里按这个顺序找「播放量」字段(找到第一个数字型的就用)。
+// mv 实测字段:count_play(展示播放)/ real_count_play(真实播放);注意别命中 count_pay。
 const PLAY_FIELD_CANDIDATES = [
+  'count_play', 'real_count_play',
   'play_num', 'play_count', 'playnum', 'plays', 'play', 'play_total',
-  'hits', 'hit', 'views', 'view_count', 'view_num',
-  'watch_num', 'watch_count', 'click', 'click_num', 'look_num', 'read_num',
+  'view_count', 'view_num', 'views', 'watch_num', 'watch_count',
+  'hits', 'hit', 'look_num', 'read_num', 'click_num',
   'hot', 'heat', 'popularity',
 ];
 
