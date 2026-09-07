@@ -10,6 +10,7 @@ import MeetingRoom from './pages/MeetingRoom.jsx';
 import ComicDrama from './pages/ComicDrama.jsx';
 import CommentReview from './pages/CommentReview.jsx';
 import BusinessData from './pages/BusinessData.jsx';
+import BusinessInsight from './pages/BusinessInsight.jsx';
 import Admin from './pages/Admin.jsx';
 import ActivityLog from './pages/ActivityLog.jsx';
 import PostReview from './pages/PostReview.jsx';
@@ -55,7 +56,8 @@ export default function App() {
       <Route path="/meeting" element={guard(<MeetingRoom />, 'Agent 会议室')} />
       <Route path="/comic" element={guard(<ComicDrama />, '漫剧生产')} />
       <Route path="/comment-review" element={guard(<CommentReview />, '评论审核助手')} />
-      <Route path="/business-data" element={guard(<BusinessData />, '经营数据看板')} />
+      <Route path="/business-data" element={guard(<BusinessData />, '经营数据明细')} />
+      <Route path="/business-insight" element={guard(<BusinessInsight />, '数据诊断监控')} />
       <Route path="/admin" element={guard(<Admin />, '账号管理', true)} />
       <Route path="/activity" element={guard(<ActivityLog />, '操作日志', true)} />
       <Route path="/post-review" element={guard(<PostReview />, '帖子审核')} />

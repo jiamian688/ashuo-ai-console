@@ -15,7 +15,18 @@ export const TOOLS = [
   },
   { key: 'meeting', icon: '🎥', tint: '#f3eafe', color: '#8b5cf6', title: 'Agent 会议室', desc: 'Fathom 会议 · AI 跟会记录 · 纪要导出 Word/PDF', to: '/meeting' },
   { key: 'comic', icon: '🎭', tint: '#2d106622', color: '#a855f7', title: '漫剧生产', desc: 'AI 剧本 · 分镜 · 角色图 · 图转视频 · 一站式流程', to: '/comic' },
-  { key: 'businessData', icon: '📊', tint: '#e8fbf3', color: '#0d9b6c', title: '经营数据看板', desc: '自动读取后台每日收入/注册/日活/留存数据', to: '/business-data' },
+  {
+    key: 'businessData',
+    icon: '📊',
+    tint: '#e8fbf3',
+    color: '#0d9b6c',
+    title: '经营数据看板',
+    desc: '数据异常监控 · 走势研判 + 每日明细',
+    submenu: [
+      { key: 'businessInsight', icon: '🩺', title: '数据诊断监控', desc: '异常告警 · 近7天走向 · 每日体检心得', to: '/business-insight' },
+      { key: 'businessDetail', icon: '📊', title: '经营数据明细', desc: '后台每日收入/注册/日活/留存明细表', to: '/business-data' },
+    ],
+  },
   {
     key: 'contentReview',
     icon: '🛡',
