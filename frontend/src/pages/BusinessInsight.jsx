@@ -70,8 +70,14 @@ function aggregate(arr) {
   const oldActive = Math.max(a.activeTotal - a.newUsers, 0);
   const paidOld = Math.max(a.payingUsers - a.regPayUser, 0);
   const newRev = a.rechargeAmount - a.oldPayTotal;
+  // 成功订单没有按新老用户拆的字段,按「付费人数占比」估算拆分
+  const succOrders = a.rechargeSuccessCount || a.rechargeCount || 0;
+  const newPayOrders = a.payingUsers ? Math.round((succOrders * a.regPayUser) / a.payingUsers) : 0;
+  const oldPayOrders = Math.max(succOrders - newPayOrders, 0);
   return {
-    ...a, oldActive, paidOld, newRev,
+    ...a, oldActive, paidOld, newRev, newPayOrders, oldPayOrders,
+    newSpendPerPayer: a.regPayUser ? newRev / a.regPayUser : 0,
+    oldSpendPerPayer: paidOld ? a.oldPayTotal / paidOld : 0,
     androidNewShare: pct(a.newAndroid, a.newUsers),
     webNewShare: pct(a.newWeb, a.newUsers),
     inviteShare: pct(a.inviteUsers, a.newUsers),
@@ -128,6 +134,8 @@ const ROWS = [
   { label: '付费人数(日均) / 活跃付费率', cell: (m) => `${fmtNum(perDay(m, 'payingUsers'))} · ${fmt2(m.activePayRate)}%`, cmp: (m) => m.activePayRate, kind: 'pp', goodUp: true },
   { label: '新增付费人数 / DAY0 付费率', cell: (m) => `${fmtNum(perDay(m, 'regPayUser'))} · ${fmt2(m.day0PayRate)}%`, cmp: (m) => m.day0PayRate, kind: 'pp', goodUp: true },
   { label: '老用户付费人数 / 老用户付费率', cell: (m) => `${fmtNum(perDay(m, 'paidOld'))} · ${fmt2(m.oldPayRate)}%`, cmp: (m) => m.oldPayRate, kind: 'pp', goodUp: true },
+  { label: '新用户支付单量(日均·估)', sub: true, cell: (m) => fmtNum(perDay(m, 'newPayOrders')), cmp: (m) => perDay(m, 'newPayOrders'), kind: 'num', goodUp: true },
+  { label: '老用户支付单量(日均·估)', sub: true, cell: (m) => fmtNum(perDay(m, 'oldPayOrders')), cmp: (m) => perDay(m, 'oldPayOrders'), kind: 'num', goodUp: true },
   { label: '人均成功订单', cell: (m) => fmt2(m.ordersPerPayer), cmp: (m) => m.ordersPerPayer, kind: 'num', goodUp: true },
 
   { grp: '收入结构' },
@@ -141,6 +149,8 @@ const ROWS = [
   { label: 'ARPPU(收入 ÷ 付费人数)', cell: (m) => fmt1(m.arppu), cmp: (m) => m.arppu, kind: 'num', goodUp: true },
   { label: '新增 ARPU', sub: true, cell: (m) => fmt3(m.newArpu), cmp: (m) => m.newArpu, kind: 'num', goodUp: true },
   { label: '老用户 ARPU', sub: true, cell: (m) => fmt2(m.oldArpu), cmp: (m) => m.oldArpu, kind: 'num', goodUp: true },
+  { label: '新用户人均消费(按付费人数)', cell: (m) => fmt2(m.newSpendPerPayer), cmp: (m) => m.newSpendPerPayer, kind: 'num', goodUp: true },
+  { label: '老用户人均消费(按付费人数)', cell: (m) => fmt2(m.oldSpendPerPayer), cmp: (m) => m.oldSpendPerPayer, kind: 'num', goodUp: true },
 ];
 
 // 复用同一套 ROWS 渲染任意列组合;deltas = [{label,a,b}] 每项多一列对比(a 相对 b 的变化)
