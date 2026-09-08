@@ -15,6 +15,7 @@ import commentReviewRouter from './routes/commentReview.js';
 import businessDataRouter from './routes/businessData.js';
 import playBoardRouter from './routes/playBoard.js';
 import { startPlayBoardScheduler } from './services/playBoard.js';
+import collectRouter from './routes/collect.js';
 import usersRouter from './routes/users.js';
 import activityRouter from './routes/activity.js';
 import postAdminRouter from './routes/postAdmin.js';
@@ -65,6 +66,7 @@ app.use('/api/comic', requireAuth, comicRouter);
 app.use('/api/comment-review', requireAuth, commentReviewRouter);
 app.use('/api/business-data', requireAuth, businessDataRouter);
 app.use('/api/play-board', requireAuth, playBoardRouter);
+app.use('/api/collect', requireAuth, collectRouter);
 app.use('/api/sheet-export', sheetExportRouter); // 不走 requireAuth,自己校验 token(见路由文件)
 app.use('/api/users', requireAuth, requireAdmin, usersRouter);
 app.use('/api/activity', requireAuth, requireAdmin, activityRouter);

@@ -12,6 +12,7 @@ import CommentReview from './pages/CommentReview.jsx';
 import BusinessData from './pages/BusinessData.jsx';
 import BusinessInsight from './pages/BusinessInsight.jsx';
 import PlayBoard from './pages/PlayBoard.jsx';
+import Collect from './pages/Collect.jsx';
 import Admin from './pages/Admin.jsx';
 import ActivityLog from './pages/ActivityLog.jsx';
 import PostReview from './pages/PostReview.jsx';
@@ -60,6 +61,7 @@ export default function App() {
       <Route path="/business-data" element={guard(<BusinessData />, '经营数据明细')} />
       <Route path="/business-insight" element={guard(<BusinessInsight />, '数据诊断监控')} />
       <Route path="/play-board" element={guard(<PlayBoard />, '播放看板')} />
+      <Route path="/collect" element={guard(<Collect />, '视频采集')} />
       <Route path="/admin" element={guard(<Admin />, '账号管理', true)} />
       <Route path="/activity" element={guard(<ActivityLog />, '操作日志', true)} />
       <Route path="/post-review" element={guard(<PostReview />, '帖子审核')} />
