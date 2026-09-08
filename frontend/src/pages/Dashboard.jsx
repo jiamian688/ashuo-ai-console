@@ -140,9 +140,7 @@ export default function Dashboard() {
             <div className="tool-icon" style={{ background: t.tint, color: t.color }}>{t.icon}</div>
             <h3>{t.title}{t.external && <span className="tag">外部应用 ↗</span>}</h3>
             <div className="desc">{t.desc}</div>
-            <div className="foot">
-              {t.key === 'clips' && <><span><b>0</b> 今日</span><span><b>0</b> 累计</span></>}
-            </div>
+            <div className="foot" />
           </div>
         ))}
       </div>

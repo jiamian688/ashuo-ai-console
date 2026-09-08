@@ -1,7 +1,17 @@
 // 工作工具的统一清单。Dashboard 用来渲染卡片,Admin 用来配置账号能看到哪些工具。
 export const TOOLS = [
-  { key: 'clips', icon: '🖼', tint: '#eef0fb', color: '#6c5ce7', title: '剪辑管理', desc: '视频剪辑和封面图生成', to: '/clips' },
-  { key: 'collect', icon: '📥', tint: '#e8f0fe', color: '#3b6fe0', title: '视频采集', desc: 'm3u8 / mp4 链接或网页 → 下载成 MP4', to: '/collect' },
+  {
+    key: 'clips',
+    icon: '🎬',
+    tint: '#eef0fb',
+    color: '#6c5ce7',
+    title: '视频工具',
+    desc: '采集下载 + 剪辑 / 水印 / 封面',
+    submenu: [
+      { key: 'collect', icon: '📥', title: '视频采集', desc: 'm3u8 / mp4 链接或网页 → 下载成 MP4', to: '/collect' },
+      { key: 'clipsEdit', icon: '🖼', title: '剪辑管理', desc: '视频剪辑 · 去字 · 水印 · 封面图', to: '/clips' },
+    ],
+  },
   {
     key: 'communitySocial',
     icon: '💬',
