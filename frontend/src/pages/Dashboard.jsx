@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, getUser } from '../api/client.js';
+import { api, getUser, fileUrl } from '../api/client.js';
 import { TOOLS } from '../toolsConfig.js';
-import wealthGods from '../assets/wealth-gods.png';
 
 function greeting() {
   const h = new Date().getHours();
@@ -74,6 +73,10 @@ export default function Dashboard() {
   const [todayStats, setTodayStats] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [submenuTool, setSubmenuTool] = useState(null);
+  const [backgrounds, setBackgrounds] = useState([]);
+  const [showBgPicker, setShowBgPicker] = useState(false);
+  const [bgUploading, setBgUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const loadStats = () => api.stats().then(setStats).catch(() => {});
   const loadTodos = () => api.listTodos().then(setTodos).catch(() => {});
@@ -81,14 +84,35 @@ export default function Dashboard() {
     .then((d) => setTodayStats((d.stats || []).filter((s) => TODAY_STAT_NAMES.includes(s.name))))
     .catch(() => {});
   const loadRecentOrders = () => api.recentOrders().then((d) => setRecentOrders(d.orders || [])).catch(() => {});
+  const loadBackgrounds = () => api.listBackgrounds().then(setBackgrounds).catch(() => {});
   useEffect(() => {
     loadStats();
     loadTodos();
     loadTodayStats();
     loadRecentOrders();
+    loadBackgrounds();
     const timer = setInterval(() => { loadTodayStats(); loadRecentOrders(); }, 30000);
     return () => clearInterval(timer);
   }, []);
+
+  const pickBgFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBgUploading(true);
+    try {
+      const bg = await api.uploadBackground(file);
+      await api.activateBackground(bg.id);
+      await loadBackgrounds();
+    } catch (err) {
+      alert(err.message || '上传失败');
+    } finally {
+      setBgUploading(false);
+    }
+  };
+  const activateBg = async (id) => { await api.activateBackground(id); loadBackgrounds(); };
+  const clearBg = async () => { await api.deactivateBackground(); loadBackgrounds(); };
+  const deleteBg = async (id) => { await api.deleteBackground(id); loadBackgrounds(); };
 
   const addTodo = async (content, bucket) => {
     await api.addTodo(content, bucket);
@@ -107,12 +131,16 @@ export default function Dashboard() {
   const user = getUser();
   const visibleTools = (user?.isAdmin || !user?.tools) ? TOOLS : TOOLS.filter((t) => user.tools.includes(t.key));
   const pendingTodos = todos.filter((t) => !t.done && t.bucket === 'tomorrow');
+  const activeBg = backgrounds.find((b) => b.active);
 
   return (
     <div className="page">
-      <section className="hero">
+      <section
+        className={`hero ${activeBg ? 'hero--has-bg' : ''}`}
+        style={activeBg ? { '--hero-bg-image': `url(${fileUrl(activeBg.url)})` } : undefined}
+      >
         <div className="hero-top-right">
-          <img className="wealth-gods-badge" src={wealthGods} alt="五路财神" title="五路财神 · 财源广进" />
+          <button className="icon-btn hero-bg-btn" onClick={() => setShowBgPicker(true)} title="更换背景">🖼</button>
           <div className="status"><span className="dot" /> 服务运行中</div>
         </div>
         <div className="hero-body">
@@ -215,6 +243,42 @@ export default function Dashboard() {
           items={todos.filter((t) => t.bucket === 'tomorrow')}
           onAdd={addTodo} onToggle={toggleTodo} onDelete={deleteTodo} />
       </div>
+
+      {showBgPicker && (
+        <div className="modal-overlay" onClick={() => setShowBgPicker(false)}>
+          <div className="modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              自定义背景
+              <button className="ghost-btn" onClick={() => setShowBgPicker(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="bg-grid">
+                <button
+                  className={`bg-thumb bg-thumb--none ${!activeBg ? 'active' : ''}`}
+                  onClick={clearBg}
+                  title="恢复主题渐变背景"
+                >
+                  默认渐变
+                </button>
+                {backgrounds.map((b) => (
+                  <div key={b.id} className={`bg-thumb ${b.active ? 'active' : ''}`}>
+                    <img src={fileUrl(b.url)} alt="" onClick={() => activateBg(b.id)} />
+                    <button className="bg-thumb-del" onClick={() => deleteBg(b.id)} title="删除">×</button>
+                  </div>
+                ))}
+                <button
+                  className="bg-thumb bg-thumb--add"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={bgUploading}
+                >
+                  {bgUploading ? '上传中…' : '+ 上传图片'}
+                </button>
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={pickBgFile} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {submenuTool && (
         <div className="modal-overlay" onClick={() => setSubmenuTool(null)}>

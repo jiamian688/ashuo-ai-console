@@ -120,6 +120,15 @@ export const api = {
   listDailyBusinessData: (limit = 30) => request(`/business-data/daily?limit=${limit}`),
   todayHomeStats: () => request('/business-data/today'),
   recentOrders: (limit = 15) => request(`/business-data/recent-orders?limit=${limit}`),
+  listBackgrounds: () => request('/backgrounds'),
+  uploadBackground: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    return request('/backgrounds', { method: 'POST', body: form });
+  },
+  activateBackground: (id) => request(`/backgrounds/${id}/activate`, { method: 'PATCH' }),
+  deactivateBackground: () => request('/backgrounds/deactivate', { method: 'PATCH' }),
+  deleteBackground: (id) => request(`/backgrounds/${id}`, { method: 'DELETE' }),
   playBoardStatus: () => request('/play-board/status'),
   playBoard: (type, limit = 10) => request(`/play-board/board?type=${encodeURIComponent(type)}&limit=${limit}`),
   playBoardScan: () => request('/play-board/scan'),
