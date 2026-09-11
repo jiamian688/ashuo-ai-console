@@ -134,10 +134,10 @@ export default function Dashboard() {
   const activeBg = backgrounds.find((b) => b.active);
 
   return (
-    <div className="page">
-      {activeBg && (
-        <div className="page-bg-fixed" style={{ '--page-bg-image': `url(${fileUrl(activeBg.url)})` }} />
-      )}
+    <div
+      className={`page ${activeBg ? 'page--has-bg' : ''}`}
+      style={activeBg ? { '--page-bg-image': `url(${fileUrl(activeBg.url)})` } : undefined}
+    >
       <section className={`hero ${activeBg ? 'hero--has-bg' : ''}`}>
         <div className="hero-top-right">
           <button className="icon-btn hero-bg-btn" onClick={() => setShowBgPicker(true)} title="更换背景">🖼</button>

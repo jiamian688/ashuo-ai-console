@@ -210,19 +210,20 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 15px;
 }
 
-/* 自定义背景:铺满整个视口的固定层(不是只在 hero 卡片里)。
-   不用负 z-index(实测会被 body 自己的背景盖住),靠它是 .page 里第一个元素、
-   后面的内容都是默认层叠顺序,自然盖在它上面。
-   hero 卡片本身在有背景图时变透明,露出这层,看起来图是连续的、没有接缝。 */
-.page-bg-fixed {
-  position: fixed;
-  inset: 0;
+/* 自定义背景:直接当 .page 自己的 background(不再用单独一层 position:fixed 的 div)。
+   元素自己的 background 规范上保证画在它自己所有子元素最下面,不会有层叠顺序的坑
+   (之前那版用独立 fixed 层 + 负/自动 z-index,反复出问题——nav 被盖住、
+   甚至怀疑把工作工具/待办卡片也盖住了。这版从根上避开这类问题)。
+   background-attachment:fixed 让背景仍然是"钉在视口上、铺满整个屏幕"的效果,
+   而不是跟着 .page 的内容滚动。 */
+.page.page--has-bg {
   background-image: linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), var(--page-bg-image);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  background-attachment: fixed;
 }
-[data-theme='dark'] .page-bg-fixed {
+[data-theme='dark'] .page.page--has-bg {
   background-image: linear-gradient(rgba(6, 7, 10, 0.45), rgba(6, 7, 10, 0.45)), var(--page-bg-image);
 }
 /* 特异度故意跟 [data-accent='x'] .hero 打平(.hero.hero--has-bg),靠写在后面覆盖财运主题的渐变。
