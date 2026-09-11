@@ -20,6 +20,11 @@ const fmtYuan = (n) => {
   n = Number(n) || 0;
   return '¥' + (Number.isInteger(n) ? n : n.toFixed(2));
 };
+// paidAt 是后台原样返回的北京时间字符串("2026-09-11 19:26:18"),直接抠 HH:mm,不经 Date 解析以免被浏览器本地时区带偏。
+const fmtHM = (s) => {
+  const m = String(s || '').match(/(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : '';
+};
 
 function TodoPanel({ title, bucket, items, onAdd, onToggle, onDelete, placeholder }) {
   const [value, setValue] = useState('');
@@ -123,6 +128,7 @@ export default function Dashboard() {
                         <span className="marquee-item" key={`${rep}-${o.id}`}>
                           <span className="marquee-tag">{fmtYuan(o.amount)}</span>
                           {o.nickname} 购买了 {o.productName}
+                          <span className="marquee-time">{fmtHM(o.paidAt)}</span>
                         </span>
                       ))}
                     </span>
