@@ -97,39 +97,43 @@ export default function Dashboard() {
     <div className="page">
       <section className="hero">
         <div className="status"><span className="dot" /> 服务运行中</div>
-        {pendingTodos.length > 0 && (
-          <div className="todo-marquee">
-            <div
-              className="todo-marquee-track"
-              style={{ animationDuration: `${Math.max(12, pendingTodos.length * 5)}s` }}
-            >
-              {[0, 1].map((rep) => (
-                <span className="todo-marquee-group" key={rep} aria-hidden={rep === 1}>
-                  {pendingTodos.map((t) => (
-                    <span className="todo-marquee-item" key={`${rep}-${t.id}`}>
-                      <span className="todo-marquee-tag">明日</span>
-                      {t.content}
-                    </span>
-                  ))}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
         <div className="hero-body">
           <div className="hero-left">
             <h1>{greeting()}，<span className="name">{user?.nickname || user?.username || '你'}</span></h1>
             <div className="sub">{today} · 你的私人工作台 · 仅显示你的任务</div>
             <div className="token-pill">🌗 今日团队 <b>{fmtTok(stats.tokensTeam)}</b> token · <b>{fmtUsd(stats.costTeam)}</b> · 你 {fmtTok(stats.tokensYou)} / {fmtUsd(stats.costYou)}</div>
           </div>
-          {todayStats.length > 0 && (
-            <div className="hero-today">
-              {todayStats.map((s) => (
-                <div key={s.name} className="hero-today-item">
-                  <div className="hero-today-label">{s.name}</div>
-                  <div className="hero-today-value" style={{ color: TODAY_STAT_COLORS[s.name] }}>{s.number}</div>
+          {(pendingTodos.length > 0 || todayStats.length > 0) && (
+            <div className="hero-right">
+              {pendingTodos.length > 0 && (
+                <div className="todo-marquee">
+                  <div
+                    className="todo-marquee-track"
+                    style={{ animationDuration: `${Math.max(12, pendingTodos.length * 5)}s` }}
+                  >
+                    {[0, 1].map((rep) => (
+                      <span className="todo-marquee-group" key={rep} aria-hidden={rep === 1}>
+                        {pendingTodos.map((t) => (
+                          <span className="todo-marquee-item" key={`${rep}-${t.id}`}>
+                            <span className="todo-marquee-tag">明日</span>
+                            {t.content}
+                          </span>
+                        ))}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
+              {todayStats.length > 0 && (
+                <div className="hero-today">
+                  {todayStats.map((s) => (
+                    <div key={s.name} className="hero-today-item">
+                      <div className="hero-today-label">{s.name}</div>
+                      <div className="hero-today-value" style={{ color: TODAY_STAT_COLORS[s.name] }}>{s.number}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
