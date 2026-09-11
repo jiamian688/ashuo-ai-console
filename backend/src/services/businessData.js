@@ -69,3 +69,17 @@ export async function getTodayStats() {
   const data = await adminCall('/admin/index/panelDataAjax');
   return data.data || [];
 }
+
+// 财务管理→订单列表,按支付成功倒序取最近几条,用于首页「最新购买」滚动展示。
+export async function getRecentOrders({ limit = 15 } = {}) {
+  const data = await adminCall('/admin/orders/listAjax', {
+    params: { page: 1, limit, 'where[orders.status]': 3, sort: 'orders.created_at', order: 'desc' },
+  });
+  return (data.data || []).map((o) => ({
+    id: o.id,
+    nickname: o.nickname,
+    productName: o.product_name,
+    amount: (Number(o.pay_amount) || 0) / 100,
+    paidAt: o.paid_at,
+  }));
+}

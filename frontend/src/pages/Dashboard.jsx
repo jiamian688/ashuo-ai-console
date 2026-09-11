@@ -16,6 +16,10 @@ const fmtTok = (n) => {
   return n >= 10000 ? (n / 10000).toFixed(1) + '万' : String(n);
 };
 const fmtUsd = (n) => '$' + (Number(n) || 0).toFixed(4);
+const fmtYuan = (n) => {
+  n = Number(n) || 0;
+  return '¥' + (Number.isInteger(n) ? n : n.toFixed(2));
+};
 
 function TodoPanel({ title, bucket, items, onAdd, onToggle, onDelete, placeholder }) {
   const [value, setValue] = useState('');
@@ -62,6 +66,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ done: 0, queued: 0, failed: 0, xAccounts: 0, tokensTeam: 0, costTeam: 0, tokensYou: 0, costYou: 0 });
   const [todos, setTodos] = useState([]);
   const [todayStats, setTodayStats] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
   const [submenuTool, setSubmenuTool] = useState(null);
 
   const loadStats = () => api.stats().then(setStats).catch(() => {});
@@ -69,11 +74,13 @@ export default function Dashboard() {
   const loadTodayStats = () => api.todayHomeStats()
     .then((d) => setTodayStats((d.stats || []).filter((s) => TODAY_STAT_NAMES.includes(s.name))))
     .catch(() => {});
+  const loadRecentOrders = () => api.recentOrders().then((d) => setRecentOrders(d.orders || [])).catch(() => {});
   useEffect(() => {
     loadStats();
     loadTodos();
     loadTodayStats();
-    const timer = setInterval(loadTodayStats, 30000);
+    loadRecentOrders();
+    const timer = setInterval(() => { loadTodayStats(); loadRecentOrders(); }, 30000);
     return () => clearInterval(timer);
   }, []);
 
@@ -104,20 +111,39 @@ export default function Dashboard() {
             <h1>{greeting()}，<span className="name">{user?.nickname || user?.username || '你'}</span></h1>
             <div className="sub">{today} · 你的私人工作台 · 仅显示你的任务</div>
             <div className="token-pill">🌗 今日团队 <b>{fmtTok(stats.tokensTeam)}</b> token · <b>{fmtUsd(stats.costTeam)}</b> · 你 {fmtTok(stats.tokensYou)} / {fmtUsd(stats.costYou)}</div>
+            {recentOrders.length > 0 && (
+              <div className="marquee-box order-marquee">
+                <div
+                  className="marquee-track"
+                  style={{ animationDuration: `${Math.max(14, recentOrders.length * 4)}s` }}
+                >
+                  {[0, 1].map((rep) => (
+                    <span className="marquee-group" key={rep} aria-hidden={rep === 1}>
+                      {recentOrders.map((o) => (
+                        <span className="marquee-item" key={`${rep}-${o.id}`}>
+                          <span className="marquee-tag">{fmtYuan(o.amount)}</span>
+                          {o.nickname} 购买了 {o.productName}
+                        </span>
+                      ))}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           {(pendingTodos.length > 0 || todayStats.length > 0) && (
             <div className="hero-right">
               {pendingTodos.length > 0 && (
-                <div className="todo-marquee">
+                <div className="marquee-box todo-marquee">
                   <div
-                    className="todo-marquee-track"
+                    className="marquee-track"
                     style={{ animationDuration: `${Math.max(12, pendingTodos.length * 5)}s` }}
                   >
                     {[0, 1].map((rep) => (
-                      <span className="todo-marquee-group" key={rep} aria-hidden={rep === 1}>
+                      <span className="marquee-group" key={rep} aria-hidden={rep === 1}>
                         {pendingTodos.map((t) => (
-                          <span className="todo-marquee-item" key={`${rep}-${t.id}`}>
-                            <span className="todo-marquee-tag">明日</span>
+                          <span className="marquee-item" key={`${rep}-${t.id}`}>
+                            <span className="marquee-tag">明日</span>
                             {t.content}
                           </span>
                         ))}

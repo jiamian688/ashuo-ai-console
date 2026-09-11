@@ -119,6 +119,7 @@ export const api = {
   businessDataStatus: () => request('/business-data/status'),
   listDailyBusinessData: (limit = 30) => request(`/business-data/daily?limit=${limit}`),
   todayHomeStats: () => request('/business-data/today'),
+  recentOrders: (limit = 15) => request(`/business-data/recent-orders?limit=${limit}`),
   playBoardStatus: () => request('/play-board/status'),
   playBoard: (type, limit = 10) => request(`/play-board/board?type=${encodeURIComponent(type)}&limit=${limit}`),
   playBoardScan: () => request('/play-board/scan'),
