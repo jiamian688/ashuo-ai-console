@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, getUser } from '../api/client.js';
 import { TOOLS } from '../toolsConfig.js';
+import wealthGods from '../assets/wealth-gods.png';
 
 function greeting() {
   const h = new Date().getHours();
@@ -110,7 +111,10 @@ export default function Dashboard() {
   return (
     <div className="page">
       <section className="hero">
-        <div className="status"><span className="dot" /> 服务运行中</div>
+        <div className="hero-top-right">
+          <img className="wealth-gods-badge" src={wealthGods} alt="五路财神" title="五路财神 · 财源广进" />
+          <div className="status"><span className="dot" /> 服务运行中</div>
+        </div>
         <div className="hero-body">
           <div className="hero-left">
             <h1>{greeting()}，<span className="name">{user?.nickname || user?.username || '你'}</span></h1>
