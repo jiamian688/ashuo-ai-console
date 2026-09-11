@@ -83,6 +83,10 @@ db.exec(`
 // 轻量迁移:users 表后加的列
 try { db.exec(`ALTER TABLE users ADD COLUMN tools TEXT`); } // JSON 数组字符串;NULL = 不限制(能看到全部工具)
 catch (e) { /* 已存在则忽略 */ }
+try { db.exec(`ALTER TABLE users ADD COLUMN active_background_id INTEGER`); } // 每个账号自己当前用的首页背景图,NULL = 用默认渐变
+catch (e) { /* 已存在则忽略 */ }
+try { db.exec(`ALTER TABLE backgrounds ADD COLUMN uploaded_by TEXT`); } // 谁传的,picker 里展示用
+catch (e) { /* 已存在则忽略 */ }
 
 // 首次启动时,把老的单密码登录(APP_PASSWORD)迁移成一个管理员账号,保证升级后原来的口令还能登录。
 const userCount = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;

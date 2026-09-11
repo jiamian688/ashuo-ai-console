@@ -286,6 +286,17 @@ button { font-family: inherit; cursor: pointer; }
   line-height: 1;
   cursor: pointer;
 }
+.bg-thumb-by {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  pointer-events: none;
+}
 
 /* ---------- todo marquee ---------- */
 .hero-right {

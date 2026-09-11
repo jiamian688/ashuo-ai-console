@@ -262,7 +262,8 @@ export default function Dashboard() {
                 </button>
                 {backgrounds.map((b) => (
                   <div key={b.id} className={`bg-thumb ${b.active ? 'active' : ''}`}>
-                    <img src={fileUrl(b.url)} alt="" onClick={() => activateBg(b.id)} />
+                    <img src={fileUrl(b.url)} alt="" onClick={() => activateBg(b.id)} title={b.uploadedBy ? `${b.uploadedBy} 上传` : ''} />
+                    {b.uploadedBy && <span className="bg-thumb-by">{b.uploadedBy}</span>}
                     <button className="bg-thumb-del" onClick={() => deleteBg(b.id)} title="删除">×</button>
                   </div>
                 ))}
