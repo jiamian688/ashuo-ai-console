@@ -75,6 +75,39 @@ button { font-family: inherit; cursor: pointer; }
   display: grid;
   place-items: center;
 }
+.accent-picker { position: relative; }
+.accent-btn { width: 30px; height: 30px; border-radius: 999px; border: 1px solid var(--border); }
+.accent-dot { width: 14px; height: 14px; border-radius: 50%; display: block; }
+.accent-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+  z-index: 20;
+}
+.accent-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.accent-option:hover { background: var(--surface-2); }
+.accent-option.active { color: var(--primary); font-weight: 700; }
 
 /* ---------- layout ---------- */
 .page { max-width: 1440px; margin: 0 auto; padding: 20px 32px 48px; }
@@ -116,6 +149,22 @@ button { font-family: inherit; cursor: pointer; }
 [data-theme='dark'] .hero {
   background: linear-gradient(120deg, #1c1936 0%, #181a22 55%, #2a1822 100%);
 }
+
+/* ---------- accent themes(财运主题) ---------- */
+[data-accent='gold'] { --primary: #d4a017; --primary-soft: #fdf3d6; }
+[data-theme='dark'][data-accent='gold'] { --primary-soft: #3a2c0f; }
+[data-accent='gold'] .hero { background: linear-gradient(120deg, #fff7e0 0%, #ffffff 55%, #fdeecb 100%); }
+[data-theme='dark'][data-accent='gold'] .hero { background: linear-gradient(120deg, #2c2308 0%, #181a22 55%, #3a2c08 100%); }
+
+[data-accent='red'] { --primary: #d64545; --primary-soft: #fdeaea; }
+[data-theme='dark'][data-accent='red'] { --primary-soft: #3a1616; }
+[data-accent='red'] .hero { background: linear-gradient(120deg, #fff0ec 0%, #ffffff 55%, #ffe8e0 100%); }
+[data-theme='dark'][data-accent='red'] .hero { background: linear-gradient(120deg, #3a1414 0%, #181a22 55%, #331010 100%); }
+
+[data-accent='jade'] { --primary: #10b981; --primary-soft: #e6f7ef; }
+[data-theme='dark'][data-accent='jade'] { --primary-soft: #0f2a1e; }
+[data-accent='jade'] .hero { background: linear-gradient(120deg, #eafbf2 0%, #ffffff 55%, #e3f7ee 100%); }
+[data-theme='dark'][data-accent='jade'] .hero { background: linear-gradient(120deg, #0f2419 0%, #181a22 55%, #163024 100%); }
 .hero h1 { margin: 0 0 6px; font-size: 22px; font-weight: 800; }
 .hero h1 .name { color: var(--primary); }
 .hero .sub { color: var(--text-soft); font-size: 13px; margin-bottom: 14px; }

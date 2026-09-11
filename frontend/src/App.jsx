@@ -28,13 +28,22 @@ function useTheme() {
   return [theme, () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))];
 }
 
-function Protected({ children, crumb, theme, onToggleTheme, adminOnly }) {
+function useAccent() {
+  const [accent, setAccent] = useState(() => localStorage.getItem('yule_accent') || 'default');
+  useEffect(() => {
+    document.documentElement.setAttribute('data-accent', accent);
+    localStorage.setItem('yule_accent', accent);
+  }, [accent]);
+  return [accent, setAccent];
+}
+
+function Protected({ children, crumb, theme, onToggleTheme, accent, onSetAccent, adminOnly }) {
   const location = useLocation();
   if (!getToken()) return <Navigate to="/login" replace state={{ from: location }} />;
   if (adminOnly && !getUser()?.isAdmin) return <Navigate to="/" replace />;
   return (
     <>
-      <Nav crumb={crumb} theme={theme} onToggleTheme={onToggleTheme} />
+      <Nav crumb={crumb} theme={theme} onToggleTheme={onToggleTheme} accent={accent} onSetAccent={onSetAccent} />
       {children}
     </>
   );
@@ -42,8 +51,9 @@ function Protected({ children, crumb, theme, onToggleTheme, adminOnly }) {
 
 export default function App() {
   const [theme, toggleTheme] = useTheme();
+  const [accent, setAccent] = useAccent();
   const guard = (el, crumb, adminOnly) => (
-    <Protected crumb={crumb} theme={theme} onToggleTheme={toggleTheme} adminOnly={adminOnly}>
+    <Protected crumb={crumb} theme={theme} onToggleTheme={toggleTheme} accent={accent} onSetAccent={setAccent} adminOnly={adminOnly}>
       {el}
     </Protected>
   );
