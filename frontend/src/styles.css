@@ -150,21 +150,21 @@ button { font-family: inherit; cursor: pointer; }
   background: linear-gradient(120deg, #1c1936 0%, #181a22 55%, #2a1822 100%);
 }
 
-/* ---------- accent themes(财运主题) ---------- */
-[data-accent='gold'] { --primary: #d4a017; --primary-soft: #fdf3d6; }
-[data-theme='dark'][data-accent='gold'] { --primary-soft: #3a2c0f; }
-[data-accent='gold'] .hero { background: linear-gradient(120deg, #fff7e0 0%, #ffffff 55%, #fdeecb 100%); }
-[data-theme='dark'][data-accent='gold'] .hero { background: linear-gradient(120deg, #2c2308 0%, #181a22 55%, #3a2c08 100%); }
+/* ---------- accent themes(财运主题)---------- 跟默认紫同一克制度:深色只在边角带一点点色相,不铺满整块 */
+[data-accent='gold'] { --primary: #b8935a; --primary-soft: #f5ecd9; }
+[data-theme='dark'][data-accent='gold'] { --primary-soft: #3a2f1c; }
+[data-accent='gold'] .hero { background: linear-gradient(120deg, #faf6ec 0%, #ffffff 55%, #f7f1e4 100%); }
+[data-theme='dark'][data-accent='gold'] .hero { background: linear-gradient(120deg, #241f14 0%, #181a22 55%, #221c12 100%); }
 
-[data-accent='red'] { --primary: #d64545; --primary-soft: #fdeaea; }
-[data-theme='dark'][data-accent='red'] { --primary-soft: #3a1616; }
-[data-accent='red'] .hero { background: linear-gradient(120deg, #fff0ec 0%, #ffffff 55%, #ffe8e0 100%); }
-[data-theme='dark'][data-accent='red'] .hero { background: linear-gradient(120deg, #3a1414 0%, #181a22 55%, #331010 100%); }
+[data-accent='red'] { --primary: #9b3d54; --primary-soft: #f7e6ea; }
+[data-theme='dark'][data-accent='red'] { --primary-soft: #34161d; }
+[data-accent='red'] .hero { background: linear-gradient(120deg, #faf0f2 0%, #ffffff 55%, #f7eef0 100%); }
+[data-theme='dark'][data-accent='red'] .hero { background: linear-gradient(120deg, #2a1620 0%, #181a22 55%, #24121a 100%); }
 
-[data-accent='jade'] { --primary: #10b981; --primary-soft: #e6f7ef; }
-[data-theme='dark'][data-accent='jade'] { --primary-soft: #0f2a1e; }
-[data-accent='jade'] .hero { background: linear-gradient(120deg, #eafbf2 0%, #ffffff 55%, #e3f7ee 100%); }
-[data-theme='dark'][data-accent='jade'] .hero { background: linear-gradient(120deg, #0f2419 0%, #181a22 55%, #163024 100%); }
+[data-accent='jade'] { --primary: #2f7d63; --primary-soft: #e3f3ec; }
+[data-theme='dark'][data-accent='jade'] { --primary-soft: #16342a; }
+[data-accent='jade'] .hero { background: linear-gradient(120deg, #eef8f3 0%, #ffffff 55%, #eef6f1 100%); }
+[data-theme='dark'][data-accent='jade'] .hero { background: linear-gradient(120deg, #12241f 0%, #181a22 55%, #10201b 100%); }
 .hero h1 { margin: 0 0 6px; font-size: 22px; font-weight: 800; }
 .hero h1 .name { color: var(--primary); }
 .hero .sub { color: var(--text-soft); font-size: 13px; margin-bottom: 14px; }
