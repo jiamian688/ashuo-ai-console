@@ -73,6 +73,8 @@ export default function Dashboard() {
     loadStats();
     loadTodos();
     loadTodayStats();
+    const timer = setInterval(loadTodayStats, 30000);
+    return () => clearInterval(timer);
   }, []);
 
   const addTodo = async (content, bucket) => {
