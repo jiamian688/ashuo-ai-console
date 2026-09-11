@@ -145,6 +145,46 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 13px;
   color: var(--text-soft);
 }
+/* ---------- todo marquee ---------- */
+.todo-marquee {
+  margin: 38px 0 14px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%);
+}
+.todo-marquee-track {
+  display: flex;
+  width: max-content;
+  animation-name: todo-marquee-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.todo-marquee:hover .todo-marquee-track { animation-play-state: paused; }
+.todo-marquee-group { display: flex; flex-shrink: 0; }
+.todo-marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 12.5px;
+  letter-spacing: 0.2px;
+  color: var(--text-faint);
+  padding: 0 34px;
+}
+.todo-marquee-tag {
+  font-size: 11px;
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+@keyframes todo-marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
 .hero-today {
   flex: 3 1 480px;
   min-width: 320px;

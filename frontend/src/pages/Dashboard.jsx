@@ -91,11 +91,31 @@ export default function Dashboard() {
   const today = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' });
   const user = getUser();
   const visibleTools = (user?.isAdmin || !user?.tools) ? TOOLS : TOOLS.filter((t) => user.tools.includes(t.key));
+  const pendingTodos = todos.filter((t) => !t.done && t.bucket === 'tomorrow');
 
   return (
     <div className="page">
       <section className="hero">
         <div className="status"><span className="dot" /> 服务运行中</div>
+        {pendingTodos.length > 0 && (
+          <div className="todo-marquee">
+            <div
+              className="todo-marquee-track"
+              style={{ animationDuration: `${Math.max(12, pendingTodos.length * 5)}s` }}
+            >
+              {[0, 1].map((rep) => (
+                <span className="todo-marquee-group" key={rep} aria-hidden={rep === 1}>
+                  {pendingTodos.map((t) => (
+                    <span className="todo-marquee-item" key={`${rep}-${t.id}`}>
+                      <span className="todo-marquee-tag">明日</span>
+                      {t.content}
+                    </span>
+                  ))}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="hero-body">
           <div className="hero-left">
             <h1>{greeting()}，<span className="name">{user?.nickname || user?.username || '你'}</span></h1>
