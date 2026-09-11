@@ -135,10 +135,10 @@ export default function Dashboard() {
 
   return (
     <div className="page">
-      <section
-        className={`hero ${activeBg ? 'hero--has-bg' : ''}`}
-        style={activeBg ? { '--hero-bg-image': `url(${fileUrl(activeBg.url)})` } : undefined}
-      >
+      {activeBg && (
+        <div className="page-bg-fixed" style={{ '--page-bg-image': `url(${fileUrl(activeBg.url)})` }} />
+      )}
+      <section className={`hero ${activeBg ? 'hero--has-bg' : ''}`}>
         <div className="hero-top-right">
           <button className="icon-btn hero-bg-btn" onClick={() => setShowBgPicker(true)} title="更换背景">🖼</button>
           <div className="status"><span className="dot" /> 服务运行中</div>
