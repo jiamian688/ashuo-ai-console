@@ -53,7 +53,7 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-app.get('/api/health', (req, res) => res.json({ ok: true, service: 'yule-agentcenter' }));
+app.get('/api/health', (req, res) => res.json({ ok: true, service: 'xiangtang-agentcenter' }));
 app.use('/api/auth', authRouter);
 app.get('/api/auth/me', requireAuth, (req, res) => res.json(req.user));
 

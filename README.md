@@ -1,4 +1,4 @@
-# Yule AgentCenter V2.0
+# Xiangtang AgentCenter V2.0
 
 内容运营私人工作台。前端 React + Vite,后端 Express + SQLite。
 
@@ -16,7 +16,7 @@
 ## 本地运行
 
 ```bash
-cd yule-agentcenter
+cd xiangtang-agentcenter
 
 # 1. 安装依赖(根 + 后端 + 前端)
 npm run install:all
@@ -93,7 +93,7 @@ const BASE = import.meta.env.VITE_API_BASE || '';
 
 ## 目录结构
 ```
-yule-agentcenter/
+xiangtang-agentcenter/
 ├── backend/          Express + SQLite + Telegram + AI
 │   ├── src/
 │   │   ├── index.js          服务入口 + 鉴权中间件

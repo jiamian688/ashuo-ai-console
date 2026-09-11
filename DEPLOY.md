@@ -8,12 +8,12 @@
 
 ## 第 1 步:推到 GitHub
 
-1. 打开 https://github.com/new,建一个**空**仓库(不要勾 README / .gitignore),名字如 `yule-agentcenter`,Private/Public 都行。
+1. 打开 https://github.com/new,建一个**空**仓库(不要勾 README / .gitignore),名字如 `xiangtang-agentcenter`,Private/Public 都行。
 2. 建好后,在本机项目目录执行(把 `你的用户名` 换成你的 GitHub 用户名):
 
 ```bash
-cd ~/yule-agentcenter
-git remote add origin https://github.com/你的用户名/yule-agentcenter.git
+cd ~/xiangtang-agentcenter
+git remote add origin https://github.com/你的用户名/xiangtang-agentcenter.git
 git push -u origin main
 ```
 
@@ -27,13 +27,13 @@ git push -u origin main
 
 1. 打开 https://render.com,用 GitHub 账号登录。
 2. 右上 **New +** → **Blueprint**。
-3. 选你刚推的 `yule-agentcenter` 仓库 → Render 会自动读取根目录的 `render.yaml`,识别出后端服务。
+3. 选你刚推的 `xiangtang-agentcenter` 仓库 → Render 会自动读取根目录的 `render.yaml`,识别出后端服务。
 4. 点 **Apply** / **Create**。它会问几个环境变量(`render.yaml` 里标了 `sync:false` 的):
    - **APP_PASSWORD**:登录口令,自己设一个(别再用 admin)
    - 其余 Telegram / X / Anthropic 的先**留空**,以后要用再回来填
    - `JWT_SECRET` 会自动生成,不用管
 5. 等构建完成(首次约 2–4 分钟)。完成后在服务页顶部会看到后端地址,形如:
-   `https://yule-agentcenter-backend.onrender.com`
+   `https://xiangtang-agentcenter-backend.onrender.com`
 6. 验证:浏览器打开 `https://你的后端地址/api/health`,看到 `{"ok":true}` 就成功。
 
 **记下这个后端地址,下一步要用。**
@@ -45,15 +45,15 @@ git push -u origin main
 ## 第 3 步:部署前端到 Vercel
 
 1. 打开 https://vercel.com,用 GitHub 账号登录。
-2. **Add New → Project** → 选 `yule-agentcenter` 仓库 → Import。
+2. **Add New → Project** → 选 `xiangtang-agentcenter` 仓库 → Import。
 3. 关键设置:
    - **Root Directory**:点 Edit,选 `frontend`(一定要选,否则 Vercel 在根目录找不到前端)
    - Framework 会自动识别为 **Vite**,Build Command `npm run build`、Output `dist` 保持默认即可
    - 展开 **Environment Variables**,加一条:
      - Name: `VITE_API_BASE`
-     - Value: 第 2 步记下的后端地址(如 `https://yule-agentcenter-backend.onrender.com`,**结尾不要带斜杠**)
+     - Value: 第 2 步记下的后端地址(如 `https://xiangtang-agentcenter-backend.onrender.com`,**结尾不要带斜杠**)
 4. 点 **Deploy**,等 1–2 分钟。
-5. 完成后拿到你的网址,形如 `https://yule-agentcenter.vercel.app` —— 这就是最终免费网址,手机电脑都能打开。
+5. 完成后拿到你的网址,形如 `https://xiangtang-agentcenter.vercel.app` —— 这就是最终免费网址,手机电脑都能打开。
 
 ---
 
@@ -69,7 +69,7 @@ git push -u origin main
 
 改完代码后:
 ```bash
-cd ~/yule-agentcenter
+cd ~/xiangtang-agentcenter
 git add -A && git commit -m "你的改动说明"
 git push
 ```

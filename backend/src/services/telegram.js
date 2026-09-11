@@ -30,7 +30,7 @@ export async function testTelegram({ sendPing = false } = {}) {
     const r = await fetch(`${API}/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: '✅ Yule AgentCenter 连接测试成功' }),
+      body: JSON.stringify({ chat_id: chatId, text: '✅ Xiangtang AgentCenter 连接测试成功' }),
     });
     const d = await r.json();
     if (!d.ok) throw new Error('发送到 chat 失败: ' + (d.description || r.status));
