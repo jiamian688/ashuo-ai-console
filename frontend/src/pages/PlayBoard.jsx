@@ -10,6 +10,7 @@ export default function PlayBoard() {
   const [active, setActive] = useState('');
   const [board, setBoard] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [scanResult, setScanResult] = useState('');
   const [scanning, setScanning] = useState(false);
@@ -36,10 +37,20 @@ export default function PlayBoard() {
     if (!type) return;
     setLoading(true);
     setError('');
-    api.playBoard(type, 10)
+    api.playBoard(type)
       .then(setBoard)
       .catch((err) => { setBoard(null); setError(err.message); })
       .finally(() => setLoading(false));
+  };
+
+  const refresh = () => {
+    if (!active) return;
+    setRefreshing(true);
+    setError('');
+    api.playBoardRefresh(active)
+      .then(setBoard)
+      .catch((err) => setError(err.message))
+      .finally(() => setRefreshing(false));
   };
 
   useEffect(() => { if (active) load(active); /* eslint-disable-next-line */ }, [active]);
@@ -51,14 +62,17 @@ export default function PlayBoard() {
       <div className={`tg-banner ${status.configured ? 'ok' : 'warn'}`}>
         <span className="dot" style={{ background: status.configured ? 'var(--green)' : 'var(--amber)' }} />
         {status.configured
-          ? '已连接管理后台 · 每 6 小时记录一次快照,「当日新增播放」= 今日累计 − 昨日快照'
+          ? '已连接管理后台 · 每 6 小时全量重抓一次快照,「当日新增播放」= 今日累计 − 昨日快照'
           : '未配置管理后台 token(在 backend/.env 填 HANIME_ADMIN_TOKEN 后可用)'}
-        <button className="ghost-btn" onClick={() => load(active)} disabled={loading}>{loading ? '刷新中…' : '刷新'}</button>
+        <button className="ghost-btn" onClick={() => load(active)} disabled={loading || refreshing}>{loading ? '加载中…' : '重新加载'}</button>
+        <button className="ghost-btn" onClick={refresh} disabled={loading || refreshing} title="真的去后台重新抓全量数据,数据多的话要等几秒到几十秒">
+          {refreshing ? '全量抓取中…' : '↻ 立即全量刷新'}
+        </button>
       </div>
 
       <div className="section-head" style={{ marginTop: 20 }}>
-        <h2>播放量 Top 10</h2>
-        <span className="hint">按累计播放排序 · 每日早晨快照自动更新</span>
+        <h2>播放量排行(全量)</h2>
+        <span className="hint">按累计播放排序{board?.total ? ` · 共 ${board.total} 条` : ''}{board?.date ? ` · 快照 ${board.date}` : ''}</span>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -95,28 +109,29 @@ export default function PlayBoard() {
           {board?.label || '—'}
           <span className="muted">
             {board?.date ? `快照 ${board.date}` : ''}
-            {board?.sampledFrom ? ` · 排名取自最近 ${board.sampledFrom} 条抽样` : ''}
             {board && !board.hasYesterday && board.list?.length ? ' · 当日新增需明日起才有对照' : ''}
           </span>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ overflowX: 'auto', maxHeight: 640, overflowY: 'auto' }}>
           <table className="compact">
             <thead>
               <tr>
                 <th style={{ width: 48 }}>#</th>
                 <th style={{ textAlign: 'left', minWidth: 260 }}>标题</th>
+                <th style={{ minWidth: 120 }}>分类</th>
                 <th style={{ minWidth: 110 }}>当日新增播放</th>
                 <th style={{ minWidth: 110 }}>累计播放</th>
               </tr>
             </thead>
             <tbody>
               {!loading && (!board || !board.list?.length) && (
-                <tr><td colSpan={4} className="empty" style={{ padding: 24 }}>暂无数据</td></tr>
+                <tr><td colSpan={5} className="empty" style={{ padding: 24 }}>暂无数据</td></tr>
               )}
               {board?.list?.map((it) => (
                 <tr key={it.id}>
                   <td style={{ fontWeight: 700, color: it.rank <= 3 ? 'var(--primary)' : 'var(--text-soft)' }}>{it.rank}</td>
                   <td style={{ textAlign: 'left' }}>{it.title}</td>
+                  <td style={{ color: 'var(--text-soft)' }}>{it.category || '—'}</td>
                   <td style={{ fontWeight: 600 }}>{it.playToday === null ? '—' : `+${fmtNum(it.playToday)}`}</td>
                   <td style={{ color: 'var(--text-soft)' }}>{fmtNum(it.playTotal)}</td>
                 </tr>

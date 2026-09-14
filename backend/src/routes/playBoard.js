@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { playBoardConfigured, TYPES, getBoard, probe, scan } from '../services/playBoard.js';
+import { playBoardConfigured, TYPES, getBoard, refreshSnapshot, probe, scan } from '../services/playBoard.js';
 
 const router = Router();
 
@@ -7,11 +7,23 @@ router.get('/status', (req, res) => {
   res.json({ configured: playBoardConfigured(), types: TYPES.map((t) => ({ key: t.key, label: t.label })) });
 });
 
-router.get('/board', async (req, res) => {
+// 读本地快照,不打后台接口。limit 不传 = 返回全部(可能几千条)。
+router.get('/board', (req, res) => {
   try {
     const type = req.query.type || TYPES[0].key;
-    const limit = Number(req.query.limit) || 10;
-    res.json(await getBoard(type, { limit }));
+    const limit = Number(req.query.limit) || 0;
+    res.json(getBoard(type, { limit }));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 手动刷新:真的去后台分页拉全量再排序,数据量大时会比较慢(几秒到几十秒)。
+router.post('/refresh', async (req, res) => {
+  try {
+    const type = req.query.type || TYPES[0].key;
+    await refreshSnapshot(type);
+    res.json(getBoard(type, { limit: Number(req.query.limit) || 0 }));
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
