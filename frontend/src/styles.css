@@ -602,6 +602,10 @@ table.compact thead th { padding: 7px 9px; font-size: 12px; white-space: nowrap;
 table.compact tbody td { padding: 7px 9px; font-size: 12px; white-space: nowrap; }
 
 /* 明细表:列名换行居中,和下面的数据严格对齐;宽版页面下不用横向滚动 */
+/* 播放看板:定宽布局,标题列吃掉剩余空间,右边不再留一大块空白 */
+table.play-table { table-layout: fixed; width: 100%; }
+table.play-table td { white-space: normal; word-break: break-word; }
+
 table.daily-detail { table-layout: fixed; width: 100%; }
 table.daily-detail thead th {
   white-space: normal;

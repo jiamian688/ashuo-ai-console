@@ -160,14 +160,14 @@ export default function PlayBoard() {
           </span>
         </div>
         <div style={{ overflowX: 'auto', maxHeight: 640, overflowY: 'auto' }}>
-          <table className="compact">
+          <table className="compact play-table">
             <thead>
               <tr>
                 <th style={{ width: 48 }}>#</th>
-                <th style={{ textAlign: 'left', minWidth: 260 }}>标题</th>
-                <th style={{ minWidth: 120 }}>分类</th>
-                <th style={{ minWidth: 110 }}>当日新增播放</th>
-                <th style={{ minWidth: 110 }}>累计播放</th>
+                <th style={{ textAlign: 'left' }}>标题</th>
+                <th style={{ width: 130 }}>分类</th>
+                <th style={{ width: 150 }}>当日新增播放</th>
+                <th style={{ width: 150 }}>累计播放</th>
               </tr>
             </thead>
             <tbody>
@@ -179,8 +179,8 @@ export default function PlayBoard() {
                   <td style={{ fontWeight: 700, color: i < 3 ? 'var(--primary)' : 'var(--text-soft)' }}>{i + 1}</td>
                   <td style={{ textAlign: 'left' }}>{it.title}</td>
                   <td style={{ color: 'var(--text-soft)' }}>{it.category || '—'}</td>
-                  <td style={{ fontWeight: 600 }}>{it.playToday === null ? '—' : `+${fmtNum(it.playToday)}`}</td>
-                  <td style={{ color: 'var(--text-soft)' }}>{fmtNum(it.playTotal)}</td>
+                  <td style={{ fontWeight: 600, textAlign: 'right', paddingRight: 24 }}>{it.playToday === null ? '—' : `+${fmtNum(it.playToday)}`}</td>
+                  <td style={{ color: 'var(--text-soft)', textAlign: 'right', paddingRight: 24 }}>{fmtNum(it.playTotal)}</td>
                 </tr>
               ))}
             </tbody>
