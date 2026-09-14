@@ -9,6 +9,7 @@ export default function PlayBoard() {
   const [status, setStatus] = useState({ configured: false, types: [] });
   const [active, setActive] = useState('');
   const [board, setBoard] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -37,6 +38,7 @@ export default function PlayBoard() {
     if (!type) return;
     setLoading(true);
     setError('');
+    setCategoryFilter('');
     api.playBoard(type)
       .then(setBoard)
       .catch((err) => { setBoard(null); setError(err.message); })
@@ -55,6 +57,17 @@ export default function PlayBoard() {
 
   useEffect(() => { if (active) load(active); /* eslint-disable-next-line */ }, [active]);
 
+  // 分类统计(按当前列表里出现的次数,方便看每个分类占比),没有分类的归到"未分类"
+  const categoryCounts = {};
+  for (const it of board?.list || []) {
+    const c = it.category || '未分类';
+    categoryCounts[c] = (categoryCounts[c] || 0) + 1;
+  }
+  const categories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
+  const filteredList = categoryFilter
+    ? (board?.list || []).filter((it) => (it.category || '未分类') === categoryFilter)
+    : board?.list || [];
+
   return (
     <div className="page page--wide">
       <button className="back-btn" onClick={() => navigate('/')}>← 返回工作台</button>
@@ -72,7 +85,7 @@ export default function PlayBoard() {
 
       <div className="section-head" style={{ marginTop: 20 }}>
         <h2>播放量排行(全量)</h2>
-        <span className="hint">按累计播放排序{board?.total ? ` · 共 ${board.total} 条` : ''}{board?.date ? ` · 快照 ${board.date}` : ''}</span>
+        <span className="hint">按累计播放排序 · 共 {filteredList.length} 条{categoryFilter ? `(${categoryFilter})` : ''}{board?.date ? ` · 快照 ${board.date}` : ''}</span>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -94,6 +107,40 @@ export default function PlayBoard() {
           </button>
         ))}
       </div>
+
+      {categories.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          <button
+            onClick={() => setCategoryFilter('')}
+            className="ghost-btn"
+            style={{
+              padding: '4px 14px', borderRadius: 999, fontSize: 13,
+              fontWeight: categoryFilter === '' ? 700 : 400,
+              background: categoryFilter === '' ? 'var(--surface)' : 'transparent',
+              color: categoryFilter === '' ? 'var(--text)' : 'var(--text-soft)',
+              borderColor: 'var(--border)',
+            }}
+          >
+            全部分类 · {board?.list?.length || 0}
+          </button>
+          {categories.map(([name, count]) => (
+            <button
+              key={name}
+              onClick={() => setCategoryFilter(name)}
+              className="ghost-btn"
+              style={{
+                padding: '4px 14px', borderRadius: 999, fontSize: 13,
+                fontWeight: categoryFilter === name ? 700 : 400,
+                background: categoryFilter === name ? 'var(--primary-soft)' : 'transparent',
+                color: categoryFilter === name ? 'var(--primary)' : 'var(--text-soft)',
+                borderColor: 'var(--border)',
+              }}
+            >
+              {name} · {count}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && <div className="error">{error}</div>}
 
@@ -124,12 +171,12 @@ export default function PlayBoard() {
               </tr>
             </thead>
             <tbody>
-              {!loading && (!board || !board.list?.length) && (
+              {!loading && !filteredList.length && (
                 <tr><td colSpan={5} className="empty" style={{ padding: 24 }}>暂无数据</td></tr>
               )}
-              {board?.list?.map((it) => (
+              {filteredList.map((it, i) => (
                 <tr key={it.id}>
-                  <td style={{ fontWeight: 700, color: it.rank <= 3 ? 'var(--primary)' : 'var(--text-soft)' }}>{it.rank}</td>
+                  <td style={{ fontWeight: 700, color: i < 3 ? 'var(--primary)' : 'var(--text-soft)' }}>{i + 1}</td>
                   <td style={{ textAlign: 'left' }}>{it.title}</td>
                   <td style={{ color: 'var(--text-soft)' }}>{it.category || '—'}</td>
                   <td style={{ fontWeight: 600 }}>{it.playToday === null ? '—' : `+${fmtNum(it.playToday)}`}</td>
