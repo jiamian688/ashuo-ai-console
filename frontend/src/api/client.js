@@ -132,6 +132,7 @@ export const api = {
   playBoardStatus: () => request('/play-board/status'),
   playBoard: (type, limit = 0) => request(`/play-board/board?type=${encodeURIComponent(type)}&limit=${limit}`),
   playBoardRefresh: (type, limit = 0) => request(`/play-board/refresh?type=${encodeURIComponent(type)}&limit=${limit}`, { method: 'POST' }),
+  playBoardCategories: (type) => request(`/play-board/categories?type=${encodeURIComponent(type)}`),
   playBoardScan: () => request('/play-board/scan'),
   collectVideo: (url, referer) => request('/collect', { method: 'POST', body: JSON.stringify({ url, referer }) }),
   collectExtract: (url) => request('/collect/extract', { method: 'POST', body: JSON.stringify({ url }) }),

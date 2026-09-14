@@ -9,6 +9,7 @@ export default function PlayBoard() {
   const [status, setStatus] = useState({ configured: false, types: [] });
   const [active, setActive] = useState('');
   const [board, setBoard] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,6 +35,10 @@ export default function PlayBoard() {
       .catch((err) => setError(err.message));
   }, []);
 
+  const loadCategories = (type) => {
+    api.playBoardCategories(type).then((r) => setCategories(r.categories || [])).catch(() => setCategories([]));
+  };
+
   const load = (type) => {
     if (!type) return;
     setLoading(true);
@@ -43,6 +48,7 @@ export default function PlayBoard() {
       .then(setBoard)
       .catch((err) => { setBoard(null); setError(err.message); })
       .finally(() => setLoading(false));
+    loadCategories(type);
   };
 
   const refresh = () => {
@@ -53,19 +59,16 @@ export default function PlayBoard() {
       .then(setBoard)
       .catch((err) => setError(err.message))
       .finally(() => setRefreshing(false));
+    loadCategories(active);
   };
 
   useEffect(() => { if (active) load(active); /* eslint-disable-next-line */ }, [active]);
 
-  // 分类统计(按当前列表里出现的次数,方便看每个分类占比),没有分类的归到"未分类"
-  const categoryCounts = {};
-  for (const it of board?.list || []) {
-    const c = it.category || '未分类';
-    categoryCounts[c] = (categoryCounts[c] || 0) + 1;
-  }
-  const categories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
+  // 一条数据的分类可能是逗号分隔的多值(比如 H游 常见"即时战略,模拟经营"),按其中任意一个匹配
+  const itemMatchesCategory = (it, name) =>
+    (it.category || '').split(/[,,、]/).map((s) => s.trim()).includes(name);
   const filteredList = categoryFilter
-    ? (board?.list || []).filter((it) => (it.category || '未分类') === categoryFilter)
+    ? (board?.list || []).filter((it) => itemMatchesCategory(it, categoryFilter))
     : board?.list || [];
 
   return (
@@ -123,20 +126,22 @@ export default function PlayBoard() {
           >
             全部分类 · {board?.list?.length || 0}
           </button>
-          {categories.map(([name, count]) => (
+          {categories.map((c) => (
             <button
-              key={name}
-              onClick={() => setCategoryFilter(name)}
+              key={c.name}
+              onClick={() => setCategoryFilter(c.name)}
               className="ghost-btn"
+              title={c.official ? '官方分类' : '数据里出现过,但不在官方分类表里'}
               style={{
                 padding: '4px 14px', borderRadius: 999, fontSize: 13,
-                fontWeight: categoryFilter === name ? 700 : 400,
-                background: categoryFilter === name ? 'var(--primary-soft)' : 'transparent',
-                color: categoryFilter === name ? 'var(--primary)' : 'var(--text-soft)',
+                fontWeight: categoryFilter === c.name ? 700 : 400,
+                background: categoryFilter === c.name ? 'var(--primary-soft)' : 'transparent',
+                color: categoryFilter === c.name ? 'var(--primary)' : (c.count ? 'var(--text-soft)' : 'var(--text-faint)'),
                 borderColor: 'var(--border)',
+                borderStyle: c.official ? 'solid' : 'dashed',
               }}
             >
-              {name} · {count}
+              {c.name} · {c.count}
             </button>
           ))}
         </div>

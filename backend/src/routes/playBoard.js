@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { playBoardConfigured, TYPES, getBoard, refreshSnapshot, probe, scan } from '../services/playBoard.js';
+import { playBoardConfigured, TYPES, getBoard, refreshSnapshot, getCategoryBreakdown, probe, scan } from '../services/playBoard.js';
 
 const router = Router();
 
@@ -24,6 +24,17 @@ router.post('/refresh', async (req, res) => {
     const type = req.query.type || TYPES[0].key;
     await refreshSnapshot(type);
     res.json(getBoard(type, { limit: Number(req.query.limit) || 0 }));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 完整官方分类清单(含 0 条的),用于筛选面板。mv/comic/book 来自后台标签表,porngame 没有
+// 对应分组、退回按当前快照数据反推。
+router.get('/categories', async (req, res) => {
+  try {
+    const type = req.query.type || TYPES[0].key;
+    res.json({ type, categories: await getCategoryBreakdown(type) });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

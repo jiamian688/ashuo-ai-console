@@ -17,23 +17,30 @@ import { adminConfigured, adminCall } from './adminClient.js';
 const PAGE_SIZE = 200;   // 分页拉全量时,每页请求多少条
 const MAX_PAGES = 80;    // 安全上限:每类最多拉 80 页(16000 条),防止某个 resource 数据异常大或分页失控时无限拉
 
-// categoryFields:按优先级尝试的「分类/子分类」候选字段名,取第一个有值的。
+// categoryFields:按优先级尝试的「分类/子分类」候选字段名,取第一个有值的(2026-09 探测确认
+// book 是 category_str 有值、category_title 反而是空的,所以 category_str 放前面)。
+// tagTypeStr:对应后台「标签」表(/admin/tags/listAjax)里 type_str 字段的分组值——这个才是官方
+// 完整分类清单的来源(2026-09 探测确认:视频=666个、卡通片=366个、书=816个;H游没有对应分组,
+// 分类筛选只能沿用"从数据里反推"这条老路)。
 export const TYPES = [
   {
     key: 'mv', label: '视频', resource: 'mv', play: 'count_play', titleFields: ['title', 'second_title'],
-    categoryFields: ['mv_type_str', 'category_title', 'pay_type_str', 'type_str'],
+    categoryFields: ['category_str', 'mv_type_str', 'category_title', 'pay_type_str', 'type_str'],
+    tagTypeStr: '视频',
   },
   {
     key: 'comic', label: '漫画', resource: 'book', play: 'view_count', titleFields: ['name', 'name_tw'],
     where: { 'book.type': 1 },
     rowFilter: (r) => Number(r.type) === 1 || /漫/.test(r.type_str || '') || !!r.comic_type_name,
-    categoryFields: ['category_title', 'comic_type_name', 'type_str'],
+    categoryFields: ['category_str', 'category_title', 'comic_type_name', 'type_str'],
+    tagTypeStr: '卡通片',
   },
   {
     key: 'book', label: '小说', resource: 'book', play: 'view_count', titleFields: ['name', 'name_tw'],
     where: { 'book.type': 2 },
     rowFilter: (r) => Number(r.type) === 2 || /小[說说]/.test(r.type_str || '') || !!r.novel_type_name,
-    categoryFields: ['category_title', 'novel_type_name', 'type_str'],
+    categoryFields: ['category_str', 'category_title', 'novel_type_name', 'type_str'],
+    tagTypeStr: '书',
   },
   {
     key: 'porngame', label: 'H游', resource: 'porngame', play: 'view_count', titleFields: ['name'],
@@ -259,6 +266,57 @@ export function getBoard(key, { limit } = {}) {
     hasYesterday: list.some((x) => x.playToday !== null),
     list,
   };
+}
+
+// 官方标签表(/admin/tags/listAjax)缓存 30 分钟——标签表本身变化不频繁,没必要每次都拉。
+let tagCache = null; // { byTypeStr: Map<type_str, [{id,name}]>, fetchedAt }
+const TAG_CACHE_TTL = 30 * 60 * 1000;
+
+async function loadTagsByTypeStr() {
+  if (tagCache && Date.now() - tagCache.fetchedAt < TAG_CACHE_TTL) return tagCache.byTypeStr;
+  const { rows } = await fetchList('tags', { limit: 2000 });
+  const byTypeStr = new Map();
+  for (const r of rows) {
+    const t = r.type_str || r.type || '';
+    if (!byTypeStr.has(t)) byTypeStr.set(t, []);
+    byTypeStr.get(t).push({ id: r.id, name: r.name });
+  }
+  tagCache = { byTypeStr, fetchedAt: Date.now() };
+  return byTypeStr;
+}
+
+// 分类筛选用的完整清单:有官方标签表对应分组的(mv/comic/book),用标签表兜底,没出现在当前
+// 快照里的分类也会列出来(count=0);没有对应分组的(porngame),退回"从当前快照数据里反推"。
+export async function getCategoryBreakdown(key) {
+  const cfg = typeCfg(key);
+  const date = latestSnapDate.get(key).d;
+  const rows = date ? listSnap.all(date, key) : [];
+
+  // 一条数据的分类可能是逗号分隔的多值(porngame 常见,如"即时战略,模拟经营"),拆开算。
+  const dataCounts = new Map();
+  for (const r of rows) {
+    const raw = (r.category || '').trim();
+    if (!raw) continue;
+    for (const part of raw.split(/[,,、]/).map((s) => s.trim()).filter(Boolean)) {
+      dataCounts.set(part, (dataCounts.get(part) || 0) + 1);
+    }
+  }
+
+  if (!cfg.tagTypeStr) {
+    return [...dataCounts.entries()]
+      .map(([name, count]) => ({ name, count, official: false }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  const byTypeStr = await loadTagsByTypeStr();
+  const official = byTypeStr.get(cfg.tagTypeStr) || [];
+  const list = official.map((t) => ({ name: t.name, count: dataCounts.get(t.name) || 0, official: true }));
+  const officialNames = new Set(official.map((t) => t.name));
+  // 数据里出现了、但不在官方标签表里的分类值,也列出来(标一下不是官方的),别把数据丢了
+  for (const [name, count] of dataCounts) {
+    if (!officialNames.has(name)) list.push({ name, count, official: false });
+  }
+  return list.sort((a, b) => b.count - a.count);
 }
 
 export async function snapshotAll() {
