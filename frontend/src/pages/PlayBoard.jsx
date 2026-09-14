@@ -164,7 +164,7 @@ export default function PlayBoard() {
             <thead>
               <tr>
                 <th style={{ width: 48 }}>#</th>
-                <th style={{ textAlign: 'left' }}>标题</th>
+                <th style={{ width: 460, textAlign: 'left' }}>标题</th>
                 <th style={{ width: 130 }}>分类</th>
                 <th style={{ width: 150 }}>当日新增播放</th>
                 <th style={{ width: 150 }}>累计播放</th>

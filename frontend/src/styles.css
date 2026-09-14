@@ -602,8 +602,9 @@ table.compact thead th { padding: 7px 9px; font-size: 12px; white-space: nowrap;
 table.compact tbody td { padding: 7px 9px; font-size: 12px; white-space: nowrap; }
 
 /* 明细表:列名换行居中,和下面的数据严格对齐;宽版页面下不用横向滚动 */
-/* 播放看板:定宽布局,标题列吃掉剩余空间,右边不再留一大块空白 */
-table.play-table { table-layout: fixed; width: 100%; }
+/* 播放看板:标题列给个固定宽度(不再 width:100% 把剩余空间都塞给它——那样标题文字
+   一短,后面就跟出一大块空白),表格本身跟内容一样宽,数据紧跟在标题列后面。 */
+table.play-table { table-layout: fixed; }
 table.play-table td { white-space: normal; word-break: break-word; }
 
 table.daily-detail { table-layout: fixed; width: 100%; }
