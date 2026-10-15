@@ -14,6 +14,7 @@ const ORDER_STATUS = { 0: '待支付', 2: '支付中', 3: '支付成功', 99: '�
 const CHARGE_TYPE = { 2: '上分', 1: '下分' };
 const SCORE_TYPE = { 1: '金币', 2: '积分', 3: '裸聊金币' };
 const CODE_STATUS = { 1: '可用', 0: '已使用' };
+const PRODUCT_STATUS = { 0: '未上架', 1: '已上架', 2: '已下架', 3: '邀请奖励' };
 const PAGE_SIZE = 20;
 
 // 通用:筛选条件 + 分页拉列表
@@ -238,7 +239,7 @@ function ExchangeCodes() {
             <label>产品
               <select className="text-input" value={gen.productId} onChange={setG('productId')}>
                 <option value="">请选择产品</option>
-                {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {products.map((p) => <option key={p.id} value={p.id}>{p.name}{p.status !== 1 && PRODUCT_STATUS[p.status] ? `(${PRODUCT_STATUS[p.status]})` : ''}</option>)}
               </select>
             </label>
             <label>生成数量(1~100)<input className="text-input" type="number" min="1" max="100" step="1" value={gen.qty} onChange={setG('qty')} /></label>

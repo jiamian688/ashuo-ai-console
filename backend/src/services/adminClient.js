@@ -59,15 +59,25 @@ async function callWithToken(path, { method = 'GET', params, body, headers } = {
     const qs = new URLSearchParams(params).toString();
     if (qs) url += `?${qs}`;
   }
-  const resp = await fetch(url, {
-    method,
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${token}`,
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method,
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${token}`,
+        ...headers,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      // 写操作超时不代表没执行成功,提示去后台核对,避免用户重复提交
+      throw new Error(method === 'GET' ? '管理后台请求超时(30秒)' : '管理后台请求超时(30秒),操作可能已生效,请先到列表核对再决定是否重试');
+    }
+    throw err;
+  }
   const data = await resp.json().catch(() => ({}));
   return { resp, data };
 }
@@ -115,12 +125,25 @@ export async function adminUploadFile(buffer, filename, mimetype) {
   return data.data; // { url, media_url, width, height, ... }
 }
 
+// 后台约定成功是 code 0 或 200(后台自己的前端也是两个都认)
+const isOk = (d) => d.code === 0 || d.code === 200;
+
+// 只有明确是登录失效才算鉴权错误(HTTP 401,或 code/msg 指向未登录、token 失效)
+function isAuthError(resp, data) {
+  if (resp.status === 401 || data.code === 401) return true;
+  return /登录|token|授权|unauthor/i.test(String(data.msg || data.message || ''));
+}
+
 export async function adminCall(path, options = {}) {
   const token = await ensureToken();
+  const method = (options.method || 'GET').toUpperCase();
   let { resp, data } = await callWithToken(path, options, token);
 
-  // token 过期/失效时 code 不为 0;如果配了自动登录,换新 token 重试一次(真正登录动作受上面的冷却限制)。
-  if (data.code !== 0 && autoLoginConfigured()) {
+  // token 过期/失效时换新 token 重试一次(真正登录动作受上面的冷却限制)。
+  // 写操作(POST 等)只在明确是鉴权错误时才重试:否则可能第一次其实已经生效,
+  // 再发一次就会重复上分/重复生成兑换码。
+  const shouldRetry = !isOk(data) && autoLoginConfigured() && (method === 'GET' || isAuthError(resp, data));
+  if (shouldRetry) {
     cachedToken = null;
     try {
       const freshToken = await login();
@@ -131,6 +154,6 @@ export async function adminCall(path, options = {}) {
     }
   }
 
-  if (data.code !== 0) throw new Error(data.msg || `管理后台请求失败 (${resp.status})`);
+  if (!isOk(data)) throw new Error(data.msg || data.message || `管理后台请求失败 (${resp.status})`);
   return data;
 }

@@ -114,7 +114,7 @@ export async function listExchangeCodes({ page, limit, code, status, productId }
   const data = await adminCall('/admin/exchangecode/listAjax', { params });
   const list = (data.data || []).map((c) => ({
     id: c.id,
-    code: c.code || '',
+    code: String(c.code || '').replace(/<[^>]*>/g, '').trim(), // 后台返回的是 <pre class='red'>码</pre>
     productId: c.product_id,
     productName: c.product_name || '',
     validDate: num(c.valid_date),
@@ -152,7 +152,7 @@ export async function listExchangeLogs({ page, limit, code, aff } = {}) {
   const list = (data.data || []).map((l) => ({
     id: l.id,
     aff: l.aff,
-    code: l.exchange_code || '',
+    code: String(l.exchange_code || '').replace(/<[^>]*>/g, '').trim(),
     remark: l.remark || '',
     statusStr: l.status_str || '',
     createdAt: l.created_at || '',
