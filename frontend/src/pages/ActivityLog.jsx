@@ -11,6 +11,7 @@ const ACTION_LABELS = {
   update_tools: '修改工具权限',
   delete_user: '删除账号',
   app_charge: 'App 上下分',
+  app_exchange_code: 'App 兑换码',
 };
 
 const PAGE_SIZE = 50;

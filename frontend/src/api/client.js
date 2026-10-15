@@ -154,6 +154,11 @@ export const api = {
   appOpsOrders: (q) => request(`/app-ops/orders?${new URLSearchParams(q)}`),
   appOpsCharges: (q) => request(`/app-ops/charges?${new URLSearchParams(q)}`),
   appOpsCharge: (payload) => request('/app-ops/charge', { method: 'POST', body: JSON.stringify(payload) }),
+  appOpsExchangeCodes: (q) => request(`/app-ops/exchange-codes?${new URLSearchParams(q)}`),
+  appOpsProducts: () => request('/app-ops/products'),
+  appOpsGenerateCodes: (payload) => request('/app-ops/exchange-codes', { method: 'POST', body: JSON.stringify(payload) }),
+  appOpsDeleteCode: (id, code) => request(`/app-ops/exchange-codes/${id}?${new URLSearchParams({ code })}`, { method: 'DELETE' }),
+  appOpsExchangeLogs: (q) => request(`/app-ops/exchange-logs?${new URLSearchParams(q)}`),
 };
 
 // 把后端返回的 /files/... 相对路径拼成可访问地址(生产环境加后端基址）

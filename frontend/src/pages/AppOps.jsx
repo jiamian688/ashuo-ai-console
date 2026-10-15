@@ -4,6 +4,7 @@ import { api } from '../api/client.js';
 
 const TABS = [
   { key: 'members', label: '👥 用户列表' },
+  { key: 'codes', label: '🎟 兑换码' },
   { key: 'orders', label: '🧾 订单列表' },
   { key: 'charges', label: '💰 上下分' },
 ];
@@ -12,6 +13,7 @@ const OAUTH_TYPES = { android: 'Android', ios: 'iOS', web: 'Web', 'a-web': 'Andr
 const ORDER_STATUS = { 0: '待支付', 2: '支付中', 3: '支付成功', 99: '支付失败' };
 const CHARGE_TYPE = { 2: '上分', 1: '下分' };
 const SCORE_TYPE = { 1: '金币', 2: '积分', 3: '裸聊金币' };
+const CODE_STATUS = { 1: '可用', 0: '已使用' };
 const PAGE_SIZE = 20;
 
 // 通用:筛选条件 + 分页拉列表
@@ -183,6 +185,145 @@ function Orders() {
   );
 }
 
+function ExchangeCodes() {
+  const l = useList(api.appOpsExchangeCodes, { code: '', status: '', productId: '' });
+  const logs = useList(api.appOpsExchangeLogs, { code: '', aff: '' });
+  const [products, setProducts] = useState([]);
+  const [gen, setGen] = useState({ productId: '', qty: '1', expiredAt: '' });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [codes, setCodes] = useState([]);
+  const setG = (k) => (e) => setGen((g) => ({ ...g, [k]: e.target.value }));
+  const productOptions = Object.fromEntries(products.map((p) => [p.id, p.name]));
+
+  useEffect(() => { api.appOpsProducts().then(setProducts).catch(() => {}); }, []);
+
+  const generate = async () => {
+    setMsg(null);
+    if (!gen.productId) return setMsg({ ok: false, text: '请选择产品' });
+    const qty = Number(gen.qty);
+    if (!Number.isInteger(qty) || qty < 1 || qty > 100) return setMsg({ ok: false, text: '生成数量须为 1~100' });
+    if (!window.confirm(`确认生成 ${qty} 个「${productOptions[gen.productId]}」兑换码?`)) return;
+    setSaving(true);
+    try {
+      const r = await api.appOpsGenerateCodes({ productId: Number(gen.productId), qty, expiredAt: gen.expiredAt });
+      setCodes(r.codes || []);
+      setMsg({ ok: true, text: `已生成 ${r.codes?.length ?? qty} 个兑换码` });
+      l.reload();
+    } catch (err) {
+      setMsg({ ok: false, text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (c) => {
+    if (!window.confirm(`确认删除兑换码 ${c.code}?`)) return;
+    try {
+      await api.appOpsDeleteCode(c.id, c.code);
+      l.reload();
+    } catch (err) {
+      window.alert(err.message);
+    }
+  };
+
+  const copy = (text) => navigator.clipboard?.writeText(text).catch(() => {});
+
+  return (
+    <>
+      <div className="card card--tight">
+        <div className="card-head">生成兑换码</div>
+        <div className="card-body">
+          <div className="ops-form">
+            <label>产品
+              <select className="text-input" value={gen.productId} onChange={setG('productId')}>
+                <option value="">请选择产品</option>
+                {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </label>
+            <label>生成数量(1~100)<input className="text-input" type="number" min="1" max="100" step="1" value={gen.qty} onChange={setG('qty')} /></label>
+            <label>过期日期(可不填)<input className="text-input" type="date" value={gen.expiredAt} onChange={setG('expiredAt')} /></label>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
+            <button className="btn-primary" style={{ height: 38 }} disabled={saving} onClick={generate}>{saving ? '生成中…' : '生成兑换码'}</button>
+            {msg && <span className={msg.ok ? 'ops-green' : 'ops-red'}>{msg.text}</span>}
+          </div>
+          {codes.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <span className="field-label" style={{ margin: 0 }}>本次生成的兑换码</span>
+                <button className="ghost-btn" style={{ marginLeft: 0 }} onClick={() => copy(codes.join('\n'))}>全部复制</button>
+              </div>
+              <pre className="ops-codes">{codes.join('\n')}</pre>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card card--tight">
+        <div className="card-head">兑换码管理</div>
+        <div className="card-body">
+          <Filters onSearch={l.search} onReset={l.reset}>
+            <input className="text-input" placeholder="兑换码" value={l.filters.code} onChange={l.set('code')} />
+            <Select value={l.filters.status} onChange={l.set('status')} placeholder="全部状态" options={CODE_STATUS} />
+            <Select value={l.filters.productId} onChange={l.set('productId')} placeholder="全部产品" options={productOptions} />
+          </Filters>
+        </div>
+      </div>
+      <ListCard l={l}>
+        <table className="compact ops-table">
+          <thead>
+            <tr><th>ID</th><th>兑换码</th><th>产品</th><th>状态</th><th>过期时间</th><th>使用时间</th><th>创建时间</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            {l.data.list.map((c) => (
+              <tr key={c.id}>
+                <td>{c.id}</td>
+                <td><span className="ops-red">{c.code}</span> <button className="ops-link" onClick={() => copy(c.code)}>复制</button></td>
+                <td>{c.productName}{c.validDate ? ` (${c.validDate}天)` : ''}</td>
+                <td className={c.status === 1 ? 'ops-green' : ''}>{CODE_STATUS[c.status] ?? c.statusStr}</td>
+                <td>{c.expiredAt || '-'}</td>
+                <td>{c.usedAt || '-'}</td>
+                <td>{c.createdAt}</td>
+                <td><button className="ops-link danger" onClick={() => remove(c)}>删除</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </ListCard>
+
+      <div className="card card--tight">
+        <div className="card-head">兑换码日志</div>
+        <div className="card-body">
+          <Filters onSearch={logs.search} onReset={logs.reset}>
+            <input className="text-input" placeholder="兑换码" value={logs.filters.code} onChange={logs.set('code')} />
+            <input className="text-input" placeholder="aff" value={logs.filters.aff} onChange={logs.set('aff')} />
+          </Filters>
+        </div>
+      </div>
+      <ListCard l={logs}>
+        <table className="compact ops-table">
+          <thead>
+            <tr><th>ID</th><th>aff</th><th>兑换码</th><th>备注</th><th>状态</th><th>时间</th></tr>
+          </thead>
+          <tbody>
+            {logs.data.list.map((g) => (
+              <tr key={g.id}>
+                <td>{g.id}</td>
+                <td>{g.aff}</td>
+                <td>{g.code}</td>
+                <td className="wrap">{g.remark}</td>
+                <td>{g.statusStr}</td>
+                <td>{g.createdAt}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </ListCard>
+    </>
+  );
+}
+
 const EMPTY_CHARGE = { toAff: '', score: '', scoreType: '1', type: '2', des: '', logDesc: '' };
 
 function Charges() {
@@ -289,7 +430,7 @@ export default function AppOps() {
 
       <div className="section-head" style={{ marginTop: 20 }}>
         <h2>App 日常运营</h2>
-        <span className="hint">对接管理后台 · 用户列表 / 订单列表 / 上下分</span>
+        <span className="hint">对接管理后台 · 用户列表 / 兑换码 / 订单列表 / 上下分</span>
       </div>
 
       {!status.configured && (
@@ -303,6 +444,7 @@ export default function AppOps() {
       </div>
 
       {tab === 'members' && <Members />}
+      {tab === 'codes' && <ExchangeCodes />}
       {tab === 'orders' && <Orders />}
       {tab === 'charges' && <Charges />}
     </div>

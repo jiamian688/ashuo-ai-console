@@ -105,3 +105,57 @@ export async function saveCharge({ toAff, score, scoreType, type, des, logDesc }
     body: { to_aff: toAff, score, score_type: scoreType, type, des: des || '', logDesc: logDesc || des || '' },
   });
 }
+
+// ---------- 用户管理→兑换码 ----------
+// status: 1=可用 0=已使用
+export async function listExchangeCodes({ page, limit, code, status, productId } = {}) {
+  const params = buildParams({ page, limit }, { status, product_id: productId });
+  if (code) params['search[code]'] = code;
+  const data = await adminCall('/admin/exchangecode/listAjax', { params });
+  const list = (data.data || []).map((c) => ({
+    id: c.id,
+    code: c.code || '',
+    productId: c.product_id,
+    productName: c.product_name || '',
+    validDate: num(c.valid_date),
+    status: num(c.status),
+    statusStr: c.status_str || '',
+    expiredAt: c.expired_at || '',
+    usedAt: c.used_at || '',
+    createdAt: c.created_at || '',
+  }));
+  return { list, total: data.count || 0 };
+}
+
+// 生成兑换码时选产品用:后台自己也是一次拉 500 条全部产品
+export async function listProducts() {
+  const data = await adminCall('/admin/product/listAjax', { params: { page: 1, limit: 500 } });
+  return (data.data || []).map((p) => ({ id: p.id, name: p.pname || `产品 ${p.id}`, status: num(p.status) }));
+}
+
+// 后台不直接返回兑换码数组,而是返回一段 html,码是里面 20 位的大写十六进制串
+export async function generateExchangeCodes({ productId, qty, expiredAt }) {
+  const body = { product_id: productId, generate_qty: qty };
+  if (expiredAt) body.expired_at = `${expiredAt} 23:59:59`;
+  const data = await adminCall('/admin/exchangecode/save', { method: 'POST', body });
+  return (data.data?.html || '').match(/\b[A-F0-9]{20}\b/g) || [];
+}
+
+export async function deleteExchangeCode(id) {
+  return adminCall('/admin/exchangecode/del', { method: 'POST', body: { _pk: id } });
+}
+
+export async function listExchangeLogs({ page, limit, code, aff } = {}) {
+  const data = await adminCall('/admin/exchangecodelog/listAjax', {
+    params: buildParams({ page, limit }, { exchange_code: code, aff }),
+  });
+  const list = (data.data || []).map((l) => ({
+    id: l.id,
+    aff: l.aff,
+    code: l.exchange_code || '',
+    remark: l.remark || '',
+    statusStr: l.status_str || '',
+    createdAt: l.created_at || '',
+  }));
+  return { list, total: data.count || 0 };
+}

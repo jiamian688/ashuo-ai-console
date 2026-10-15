@@ -46,6 +46,7 @@ export const ACTIONS = [
   'update_tools',
   'delete_user',
   'app_charge',
+  'app_exchange_code',
 ];
 
 export function listActivity({ action, actor, page = 1, limit = 50 } = {}) {
