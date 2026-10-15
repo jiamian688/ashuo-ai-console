@@ -102,6 +102,7 @@ export async function listCharges({ page, limit, toAff, type } = {}) {
 export async function saveCharge({ toAff, score, scoreType, type, des, logDesc }) {
   return adminCall('/admin/chargeadmin/save', {
     method: 'POST',
+    form: true,
     body: { to_aff: toAff, score, score_type: scoreType, type, des: des || '', logDesc: logDesc || des || '' },
   });
 }
@@ -137,12 +138,12 @@ export async function listProducts() {
 export async function generateExchangeCodes({ productId, qty, expiredAt }) {
   const body = { product_id: productId, generate_qty: qty };
   if (expiredAt) body.expired_at = `${expiredAt} 23:59:59`;
-  const data = await adminCall('/admin/exchangecode/save', { method: 'POST', body });
+  const data = await adminCall('/admin/exchangecode/save', { method: 'POST', form: true, body });
   return (data.data?.html || '').match(/\b[A-F0-9]{20}\b/g) || [];
 }
 
 export async function deleteExchangeCode(id) {
-  return adminCall('/admin/exchangecode/del', { method: 'POST', body: { _pk: id } });
+  return adminCall('/admin/exchangecode/del', { method: 'POST', form: true, body: { _pk: id } });
 }
 
 export async function listExchangeLogs({ page, limit, code, aff } = {}) {

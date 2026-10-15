@@ -53,7 +53,9 @@ async function ensureToken() {
   return login();
 }
 
-async function callWithToken(path, { method = 'GET', params, body, headers } = {}, token) {
+// form: true 时按表单格式(x-www-form-urlencoded)发 body —— 后台自己的前端写操作都是这么发的,
+// 有些接口(上下分、生成兑换码等)只认表单,发 JSON 会读不到字段,报「无效用户/无效产品」。
+async function callWithToken(path, { method = 'GET', params, body, headers, form = false } = {}, token) {
   let url = `${BASE}${path}`;
   if (params) {
     const qs = new URLSearchParams(params).toString();
@@ -64,11 +66,11 @@ async function callWithToken(path, { method = 'GET', params, body, headers } = {
     resp = await fetch(url, {
       method,
       headers: {
-        'content-type': 'application/json',
+        'content-type': form ? 'application/x-www-form-urlencoded' : 'application/json',
         authorization: `Bearer ${token}`,
         ...headers,
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: !body ? undefined : form ? new URLSearchParams(body).toString() : JSON.stringify(body),
       signal: AbortSignal.timeout(30_000),
     });
   } catch (err) {
