@@ -10,6 +10,7 @@ const ACTION_LABELS = {
   reset_password: '重置密码',
   update_tools: '修改工具权限',
   delete_user: '删除账号',
+  app_charge: 'App 上下分',
 };
 
 const PAGE_SIZE = 50;

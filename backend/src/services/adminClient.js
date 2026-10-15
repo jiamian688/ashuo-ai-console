@@ -53,7 +53,7 @@ async function ensureToken() {
   return login();
 }
 
-async function callWithToken(path, { method = 'GET', params, body } = {}, token) {
+async function callWithToken(path, { method = 'GET', params, body, headers } = {}, token) {
   let url = `${BASE}${path}`;
   if (params) {
     const qs = new URLSearchParams(params).toString();
@@ -64,6 +64,7 @@ async function callWithToken(path, { method = 'GET', params, body } = {}, token)
     headers: {
       'content-type': 'application/json',
       authorization: `Bearer ${token}`,
+      ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
   });

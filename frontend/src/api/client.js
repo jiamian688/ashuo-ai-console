@@ -149,6 +149,11 @@ export const api = {
     return request('/post-admin/upload-image', { method: 'POST', body: formData });
   },
   createCommunityPost: (payload) => request('/post-admin/create', { method: 'POST', body: JSON.stringify(payload) }),
+  appOpsStatus: () => request('/app-ops/status'),
+  appOpsMembers: (q) => request(`/app-ops/members?${new URLSearchParams(q)}`),
+  appOpsOrders: (q) => request(`/app-ops/orders?${new URLSearchParams(q)}`),
+  appOpsCharges: (q) => request(`/app-ops/charges?${new URLSearchParams(q)}`),
+  appOpsCharge: (payload) => request('/app-ops/charge', { method: 'POST', body: JSON.stringify(payload) }),
 };
 
 // 把后端返回的 /files/... 相对路径拼成可访问地址(生产环境加后端基址）

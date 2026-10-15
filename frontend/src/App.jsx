@@ -17,6 +17,7 @@ import Admin from './pages/Admin.jsx';
 import ActivityLog from './pages/ActivityLog.jsx';
 import PostReview from './pages/PostReview.jsx';
 import CommunityPost from './pages/CommunityPost.jsx';
+import AppOps from './pages/AppOps.jsx';
 import { getToken, getUser } from './api/client.js';
 
 function useTheme() {
@@ -76,6 +77,7 @@ export default function App() {
       <Route path="/activity" element={guard(<ActivityLog />, '操作日志', true)} />
       <Route path="/post-review" element={guard(<PostReview />, '帖子审核')} />
       <Route path="/community-post" element={guard(<CommunityPost />, '社区发布')} />
+      <Route path="/app-ops" element={guard(<AppOps />, 'App 日常运营')} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

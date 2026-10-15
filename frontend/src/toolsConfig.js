@@ -52,4 +52,5 @@ export const TOOLS = [
       { key: 'communityPost', icon: '📮', title: '社区发布', desc: '发布新帖子到社区', to: '/community-post' },
     ],
   },
+  { key: 'appOps', icon: '📱', tint: '#e6f4fe', color: '#0284c7', title: 'App 日常运营', desc: '用户列表 · 订单列表 · 上下分', to: '/app-ops' },
 ];

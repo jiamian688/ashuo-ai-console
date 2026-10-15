@@ -21,6 +21,7 @@ import activityRouter from './routes/activity.js';
 import postAdminRouter from './routes/postAdmin.js';
 import sheetExportRouter from './routes/sheetExport.js';
 import backgroundsRouter from './routes/backgrounds.js';
+import appOpsRouter from './routes/appOps.js';
 import { startCommentAutoReviewScheduler } from './services/commentReviewScheduler.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -73,6 +74,7 @@ app.use('/api/users', requireAuth, requireAdmin, usersRouter);
 app.use('/api/activity', requireAuth, requireAdmin, activityRouter);
 app.use('/api/post-admin', requireAuth, postAdminRouter);
 app.use('/api/backgrounds', requireAuth, backgroundsRouter);
+app.use('/api/app-ops', requireAuth, appOpsRouter);
 
 // 本地用 BACKEND_PORT(避开被注入的 PORT);Render 等平台注入 PORT,回退到它
 const PORT = process.env.BACKEND_PORT || process.env.PORT || 4000;

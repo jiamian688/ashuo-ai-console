@@ -45,6 +45,7 @@ export const ACTIONS = [
   'reset_password',
   'update_tools',
   'delete_user',
+  'app_charge',
 ];
 
 export function listActivity({ action, actor, page = 1, limit = 50 } = {}) {
