@@ -13,8 +13,15 @@ function checkToken(req, res, next) {
 }
 
 // 最新一天(已生成的)经营数据,给 Google Sheet 每天定时抓取用。
+// 带 ?date=YYYY-MM-DD 时返回指定那天(最近 30 天内),用于服务停机后补填漏掉的日子。
 router.get('/daily-latest', checkToken, async (req, res) => {
+  const { date } = req.query;
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date 格式应为 YYYY-MM-DD' });
   try {
+    if (date) {
+      const { list } = await listDailyReports({ limit: 30 });
+      return res.json(list.find((d) => d.date === date) || null);
+    }
     const { list } = await listDailyReports({ limit: 1 });
     res.json(list[0] || null);
   } catch (err) {
